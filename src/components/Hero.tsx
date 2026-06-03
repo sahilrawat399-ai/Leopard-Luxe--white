@@ -4,18 +4,68 @@ import { ArrowRight, Play, TrendingUp, ShieldCheck } from 'lucide-react';
 export function Hero() {
   return (
     <section className="relative min-h-screen flex items-center justify-center bg-white text-rich-black overflow-hidden pt-36 pb-16">
-      {/* Moving Premium Gradients */}
-      <div className="absolute inset-0 z-0 opacity-30">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-gold-400/20 blur-[120px] mix-blend-multiply animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-gold-600/10 blur-[150px] mix-blend-multiply animate-pulse" style={{ animationDuration: '10s' }} />
+      {/* Moving Premium Gradients & Ambient Glow */}
+      <div className="absolute inset-0 z-0 overflow-hidden bg-white/40">
+        <motion.div
+           className="absolute top-[-20%] left-[-10%] w-[70vw] h-[70vw] rounded-full bg-gradient-to-br from-gold-400/20 to-transparent blur-[120px] mix-blend-multiply"
+           animate={{
+             x: [0, 50, 0],
+             y: [0, 30, 0],
+             scale: [1, 1.05, 1],
+           }}
+           transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+        />
+        <motion.div
+           className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-tl from-gold-600/15 to-transparent blur-[150px] mix-blend-multiply"
+           animate={{
+             x: [0, -50, 0],
+             y: [0, -30, 0],
+             scale: [1, 1.1, 1],
+           }}
+           transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
+        />
+        <motion.div
+           className="absolute top-[20%] right-[20%] w-[40vw] h-[40vw] rounded-full bg-gold/10 blur-[100px] mix-blend-multiply"
+           animate={{
+             x: [0, 30, -30, 0],
+             y: [0, 60, -30, 0],
+           }}
+           transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+        />
       </div>
 
-      {/* Gold Particles */}
-      <div className="absolute inset-0 z-0">
-        {[...Array(15)].map((_, i) => (
+      {/* Floating Particles & Light Trails */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        {/* Subtle Light Trails */}
+        {[...Array(6)].map((_, i) => (
+          <motion.div
+            key={`trail-${i}`}
+            className="absolute bg-gradient-to-t from-transparent via-gold-400/20 to-transparent blur-[1px] rounded-full"
+            style={{
+              width: Math.random() * 2 + 1 + 'px',
+              height: Math.random() * 200 + 100 + 'px',
+              left: Math.random() * 100 + '%',
+              top: '100%',
+              opacity: 0,
+            }}
+            animate={{
+              y: ['0vh', '-120vh'],
+              opacity: [0, 1, 0],
+            }}
+            transition={{
+              duration: Math.random() * 10 + 15,
+              repeat: Infinity,
+              ease: 'linear',
+              delay: Math.random() * 10,
+            }}
+          />
+        ))}
+
+        {/* Premium Floating Particles */}
+        {[...Array(30)].map((_, i) => (
           <motion.div
             key={`gold-part-${i}`}
-            className="absolute rounded-full bg-gold/40"
+            className="absolute rounded-full bg-gradient-to-br from-gold-400 to-gold-600 shadow-[0_0_12px_rgba(212,175,55,0.8)]"
             style={{
               width: Math.random() * 3 + 1 + 'px',
               height: Math.random() * 3 + 1 + 'px',
@@ -23,13 +73,41 @@ export function Hero() {
               left: Math.random() * 100 + '%',
             }}
             animate={{
-              y: [0, -30, 0],
-              opacity: [0.2, 0.8, 0.2],
+              y: [0, Math.random() * -120 - 40],
+              x: [0, Math.random() * 80 - 40],
+              opacity: [0, 0.8, 0],
+              scale: [0.5, 1.2, 0.5],
             }}
             transition={{
-              duration: Math.random() * 3 + 3,
+              duration: Math.random() * 10 + 8,
               repeat: Infinity,
               ease: 'easeInOut',
+              delay: Math.random() * 5,
+            }}
+          />
+        ))}
+
+        {/* Glow Spheres */}
+        {[...Array(4)].map((_, i) => (
+          <motion.div
+            key={`glow-${i}`}
+            className="absolute rounded-full bg-white/60 blur-md pointer-events-none"
+            style={{
+              width: Math.random() * 15 + 10 + 'px',
+              height: Math.random() * 15 + 10 + 'px',
+              top: Math.random() * 100 + '%',
+              left: Math.random() * 100 + '%',
+            }}
+            animate={{
+              y: [0, -80, 0],
+              x: [0, 40, 0],
+              opacity: [0, 0.4, 0],
+            }}
+            transition={{
+              duration: Math.random() * 12 + 10,
+              repeat: Infinity,
+              ease: 'easeInOut',
+              delay: Math.random() * 5,
             }}
           />
         ))}
