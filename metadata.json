@@ -1,0 +1,6 @@
+{
+  "name": "Leopard Luxe",
+  "description": "Luxury ReactJS agency website for Leopard Luxe, a premium business growth and digital transformation agency.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
