@@ -14,6 +14,7 @@ import { Portfolio } from './pages/Portfolio';
 import { ServicesPage } from './pages/ServicesPage';
 import { ResultsPage } from './pages/ResultsPage';
 import { PricingPage } from './pages/PricingPage';
+import { FAQPage } from './pages/FAQPage';
 import { ScrollToTop } from './components/ScrollToTop';
 
 export default function App() {
@@ -33,6 +34,7 @@ export default function App() {
           <Route path="/services" element={<ServicesPage />} />
           <Route path="/results" element={<ResultsPage />} />
           <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/faq" element={<FAQPage />} />
         </Routes>
         <Footer />
         <FloatingButtons />
