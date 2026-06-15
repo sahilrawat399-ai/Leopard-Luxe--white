@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import { ArrowRight, CheckCircle2, Globe, TrendingUp, Presentation, Dumbbell, Home as HomeIcon } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const projects = [
   {
@@ -50,6 +50,8 @@ const reasons = [
 ];
 
 export function Portfolio() {
+  const navigate = useNavigate();
+
   return (
     <main className="bg-rich-black min-h-screen text-white pt-32 pb-20">
       
@@ -66,7 +68,9 @@ export function Portfolio() {
           <p className="text-gray-400 text-lg md:text-xl max-w-3xl mx-auto mb-10 leading-relaxed">
             Explore how Leopard Luxe helps businesses grow through high-converting websites, SEO, and digital marketing solutions.
           </p>
-          <button className="group relative inline-flex items-center gap-3 px-8 py-4 rounded-full font-bold tracking-widest text-sm uppercase text-rich-black transition-all duration-300 hover:scale-105 shadow-[0_10px_30px_rgba(212,175,55,0.3)] bg-gradient-to-r from-[#D4AF37] to-[#B8860B] overflow-hidden">
+          <button 
+            onClick={() => navigate('/discovery')}
+            className="group relative inline-flex items-center gap-3 px-8 py-4 rounded-full font-bold tracking-widest text-sm uppercase text-rich-black transition-all duration-300 hover:scale-105 shadow-[0_10px_30px_rgba(212,175,55,0.3)] bg-gradient-to-r from-[#D4AF37] to-[#B8860B] overflow-hidden">
             <span className="absolute top-0 -inset-full h-full w-1/2 block transform -skew-x-[30deg] bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-[shine_1s_ease-in-out_infinite]" />
             <span className="relative z-10 flex items-center justify-center w-full gap-2">
               Book a Free Consultation
@@ -199,12 +203,14 @@ export function Portfolio() {
             Let's build a website and marketing strategy that attracts more customers and increases revenue.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-            <button className="w-full sm:w-auto px-8 py-4 rounded-full font-bold tracking-widest text-sm uppercase text-rich-black transition-all duration-300 hover:scale-105 shadow-[0_10px_30px_rgba(212,175,55,0.3)] bg-gradient-to-r from-[#D4AF37] to-[#B8860B]">
+            <button 
+              onClick={() => navigate('/discovery')}
+              className="w-full sm:w-auto px-8 py-4 rounded-full font-bold tracking-widest text-sm uppercase text-rich-black transition-all duration-300 hover:scale-105 shadow-[0_10px_30px_rgba(212,175,55,0.3)] bg-gradient-to-r from-[#D4AF37] to-[#B8860B]">
               Get Started
             </button>
-            <button className="w-full sm:w-auto px-8 py-4 rounded-full border-2 border-gold text-gold font-bold tracking-widest text-sm uppercase transition-all duration-300 hover:bg-gold hover:text-rich-black">
-              Contact Us
-            </button>
+            <a href="mailto:agency@leopardluxe.in" className="w-full sm:w-auto px-8 py-4 rounded-full border-2 border-gold text-gold font-bold tracking-widest text-sm uppercase transition-all duration-300 hover:bg-gold hover:text-rich-black text-center">
+              Contact Us by Email
+            </a>
           </div>
         </div>
       </section>

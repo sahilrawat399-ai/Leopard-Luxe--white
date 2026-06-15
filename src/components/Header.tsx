@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useEffect } from 'react';
 import { Phone, ArrowRight, Menu, X } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import logoSvg from '/assets/images/logo-bg.png';
 
@@ -11,6 +11,7 @@ const mobileLinks = ['Home', 'Services', 'Portfolio', 'Process', 'Case Studies',
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -92,7 +93,10 @@ export function Header() {
 
         {/* RIGHT SECTION: Buttons */}
         <div className="relative z-10 hidden lg:flex items-center gap-4">
-          <button className="group relative flex items-center gap-2 px-6 py-3 rounded-[14px] font-bold tracking-widest text-xs uppercase text-rich-black transition-all duration-300 hover:-translate-y-1 shadow-[0_5px_20px_rgba(212,175,55,0.3)] bg-gradient-to-r from-[#D4AF37] to-[#B8860B] overflow-hidden">
+          <Link to="/login" className="hidden lg:inline-flex items-center justify-center gap-2 group border border-gold/30 hover:border-gold bg-transparent text-gold px-6 py-3 rounded-[14px] font-bold tracking-widest text-xs uppercase transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_15px_rgba(212,175,55,0.2)]">
+            Client Portal
+          </Link>
+          <button onClick={() => navigate('/discovery')} className="group relative flex items-center gap-2 px-6 py-3 rounded-[14px] font-bold tracking-widest text-xs uppercase text-rich-black transition-all duration-300 hover:-translate-y-1 shadow-[0_5px_20px_rgba(212,175,55,0.3)] bg-gradient-to-r from-[#D4AF37] to-[#B8860B] overflow-hidden">
             {/* Shine sweep */}
             <span className="absolute top-0 -inset-full h-full w-1/2 block transform -skew-x-[30deg] bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-[shine_1s_ease-in-out_infinite]" />
             <span className="relative z-10 flex items-center gap-2">

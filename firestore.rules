@@ -1,0 +1,226 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net
+    match /{document=**} { 
+      allow read, write: if false; 
+    }
+
+    // --- Core Helpers ---
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin() { 
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) 
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'; 
+    }
+    
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    
+    function isValidId(id) { 
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+
+    // --- Entity Validation Helpers ---
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['fullName', 'email', 'role', 'createdAt', 'updatedAt'])
+        && data.fullName is string && data.fullName.size() <= 100
+        && data.email is string && data.email.size() <= 100 && data.email.matches('.*@.*')
+        && (data.role == 'client' || data.role == 'admin')
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp
+        // optional fields
+        && (!('businessName' in data) || (data.businessName is string && data.businessName.size() <= 100))
+        && (!('phoneNumber' in data) || (data.phoneNumber is string && data.phoneNumber.size() <= 20));
+    }
+
+    function isValidProject(data) {
+      return data.keys().hasAll(['clientId', 'status', 'percentageCompleted', 'createdAt', 'updatedAt'])
+        && data.clientId is string && data.clientId.size() <= 128
+        && data.status is string && data.status in [
+            'Onboarding', 'Discovery & Research', 'Strategy Planning', 'Project Started', 
+            'Phase 1 Development', 'Phase 2 Development', 'Phase 3 Optimization', 
+            'Client Review', 'Final Revisions', 'Project Completed'
+        ]
+        && data.percentageCompleted is number && data.percentageCompleted >= 0 && data.percentageCompleted <= 100
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp
+        // optional fields
+        && (!('expectedCompletionDate' in data) || data.expectedCompletionDate is timestamp)
+        && (!('lastUpdateDate' in data) || data.lastUpdateDate is timestamp);
+    }
+    
+    function isValidMeeting(data) {
+      return data.keys().hasAll(['clientId', 'date', 'time', 'serviceType', 'status', 'createdAt', 'updatedAt'])
+        && data.clientId is string && data.clientId.size() <= 128
+        && data.date is string && data.date.size() <= 20
+        && data.time is string && data.time.size() <= 10
+        && data.serviceType is string && data.serviceType.size() <= 100
+        && data.status is string && data.status in ['Pending', 'Approved', 'Rescheduled', 'Cancelled']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000));
+    }
+    
+    function isValidProjectUpdate(data) {
+      return data.keys().hasAll(['projectId', 'clientId', 'description', 'uploadedBy', 'createdAt'])
+        && data.projectId is string && data.projectId.size() <= 128
+        && data.clientId is string && data.clientId.size() <= 128
+        && data.description is string && data.description.size() <= 2000
+        && data.uploadedBy is string && data.uploadedBy.size() <= 128
+        && data.createdAt is timestamp;
+    }
+    
+    function isValidFile(data) {
+      return data.keys().hasAll(['projectId', 'clientId', 'uploadedBy', 'fileName', 'fileUrl', 'createdAt'])
+        && data.projectId is string && data.projectId.size() <= 128
+        && data.clientId is string && data.clientId.size() <= 128
+        && data.uploadedBy is string && data.uploadedBy.size() <= 128
+        && data.fileName is string && data.fileName.size() <= 256
+        && data.fileUrl is string && data.fileUrl.size() <= 1024
+        && data.createdAt is timestamp;
+    }
+
+    function isValidLead(data) {
+      return data.keys().hasAll(['fullName', 'email', 'status', 'createdAt', 'updatedAt'])
+        && data.fullName is string && data.fullName.size() <= 100
+        && data.email is string && data.email.size() <= 100
+        && data.status is string && data.status in ["New Lead", "Contacted", "Qualified", "Proposal Sent", "Closed Won", "Closed Lost"]
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // --- Collections ---
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (request.auth.uid == userId || isAdmin());
+      // Admin can list users. Clients have no business listing users.
+      allow list: if isAdmin();
+
+      // Only allow creation of own profile, with 'client' role initially.
+      // (Unless they are becoming an admin via some out-of-band way, but for now strictly 'client' for self-signup)
+      allow create: if isSignedIn() 
+        && isValidId(userId)
+        && request.auth.uid == userId
+        && isValidUser(incoming())
+        && incoming().createdAt == request.time
+        && incoming().role == 'client'
+        && incoming().keys().size() <= 7;
+        
+      allow update: if isSignedIn() 
+        && isValidId(userId)
+        && isValidUser(incoming())
+        && incoming().updatedAt == request.time
+        && incoming().createdAt == existing().createdAt
+        && (
+           // Admin can update any profile completely.
+           isAdmin() ||
+           // User can update their own profile, but cannot change role.
+           (request.auth.uid == userId && incoming().role == existing().role)
+        );
+        
+      allow delete: if isAdmin() && isValidId(userId);
+    }
+    
+    match /projects/{projectId} {
+      // Client can read their own projects, admin can read all.
+      allow read: if isSignedIn() && isValidId(projectId) && (isAdmin() || existing().clientId == request.auth.uid);
+      // For querying, must mandate where condition for client
+      allow list: if isSignedIn() && (isAdmin() || resource.data.clientId == request.auth.uid);
+      
+      // Admin only create
+      allow create: if isAdmin() 
+        && isValidId(projectId)
+        && isValidProject(incoming())
+        && incoming().createdAt == request.time
+        && exists(/databases/$(database)/documents/users/$(incoming().clientId));
+        
+      allow update: if isAdmin()
+        && isValidId(projectId)
+        && isValidProject(incoming())
+        && incoming().updatedAt == request.time
+        && incoming().createdAt == existing().createdAt
+        && incoming().clientId == existing().clientId; // immutable
+        
+      allow delete: if isAdmin() && isValidId(projectId);
+    }
+    
+    match /meetings/{meetingId} {
+      allow read: if isSignedIn() && isValidId(meetingId) && (isAdmin() || existing().clientId == request.auth.uid);
+      allow list: if isSignedIn() && (isAdmin() || resource.data.clientId == request.auth.uid);
+      
+      // Client can book meeting
+      allow create: if isSignedIn()
+        && isValidId(meetingId)
+        && isValidMeeting(incoming())
+        && incoming().createdAt == request.time
+        && incoming().clientId == request.auth.uid
+        && incoming().status == 'Pending';
+        
+      // Admin can approve/reschedule/cancel. Client can only cancel own meeting.
+      allow update: if (isSignedIn()
+        && isValidId(meetingId)
+        && isValidMeeting(incoming())
+        && incoming().updatedAt == request.time
+        && incoming().createdAt == existing().createdAt
+        && incoming().clientId == existing().clientId
+        && (
+            isAdmin() || 
+            (request.auth.uid == existing().clientId && incoming().status == 'Cancelled' && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']))
+        ));
+        
+      allow delete: if isAdmin() && isValidId(meetingId);
+    }
+    
+    match /projectUpdates/{updateId} {
+      allow read: if isSignedIn() && isValidId(updateId) && (isAdmin() || existing().clientId == request.auth.uid);
+      allow list: if isSignedIn() && (isAdmin() || resource.data.clientId == request.auth.uid);
+      
+      allow create: if isAdmin()
+        && isValidId(updateId)
+        && isValidProjectUpdate(incoming())
+        && incoming().createdAt == request.time
+        && exists(/databases/$(database)/documents/projects/$(incoming().projectId))
+        && get(/databases/$(database)/documents/projects/$(incoming().projectId)).data.clientId == incoming().clientId; // ensure consistency
+        
+      allow update: if false; // immutable history
+      allow delete: if isAdmin() && isValidId(updateId);
+    }
+    
+    match /files/{fileId} {
+      // Client or admin can read if they have access to project
+      allow read: if isSignedIn() && isValidId(fileId) && (isAdmin() || existing().clientId == request.auth.uid);
+      allow list: if isSignedIn() && (isAdmin() || resource.data.clientId == request.auth.uid);
+      
+      // Both can upload files to a project, if they have access
+      allow create: if isSignedIn()
+        && isValidId(fileId)
+        && isValidFile(incoming())
+        && incoming().createdAt == request.time
+        && incoming().uploadedBy == request.auth.uid
+        && exists(/databases/$(database)/documents/projects/$(incoming().projectId))
+        && get(/databases/$(database)/documents/projects/$(incoming().projectId)).data.clientId == incoming().clientId // ensure consistency
+        && (isAdmin() || incoming().clientId == request.auth.uid);
+        
+      allow update: if false; // immutable record
+      allow delete: if isSignedIn() && isValidId(fileId) && (isAdmin() || existing().uploadedBy == request.auth.uid);
+    }
+    
+    match /leads/{leadId} {
+      allow read, list: if isAdmin();
+      
+      // Anyone can submit a lead (even unauthenticated)
+      allow create: if isValidId(leadId)
+        && isValidLead(incoming())
+        && incoming().createdAt == request.time;
+        
+      allow update: if isAdmin()
+        && isValidId(leadId)
+        && isValidLead(incoming())
+        && incoming().updatedAt == request.time
+        && incoming().createdAt == existing().createdAt;
+        
+      allow delete: if isAdmin() && isValidId(leadId);
+    }
+  }
+}

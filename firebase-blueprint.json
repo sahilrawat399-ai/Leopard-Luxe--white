@@ -1,0 +1,135 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user of the application",
+      "type": "object",
+      "properties": {
+        "fullName": { "type": "string" },
+        "businessName": { "type": "string" },
+        "email": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "role": { "type": "string", "enum": ["client", "admin"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["fullName", "email", "role", "createdAt", "updatedAt"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "A client project",
+      "type": "object",
+      "properties": {
+        "clientId": { "type": "string" },
+        "status": { 
+          "type": "string", 
+          "enum": [
+            "Onboarding", "Discovery & Research", "Strategy Planning", "Project Started", 
+            "Phase 1 Development", "Phase 2 Development", "Phase 3 Optimization", 
+            "Client Review", "Final Revisions", "Project Completed"
+          ] 
+        },
+        "percentageCompleted": { "type": "number" },
+        "expectedCompletionDate": { "type": "string", "format": "date-time" },
+        "lastUpdateDate": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["clientId", "status", "percentageCompleted", "createdAt", "updatedAt"]
+    },
+    "Meeting": {
+      "title": "Meeting",
+      "description": "A scheduled meeting between client and admin",
+      "type": "object",
+      "properties": {
+        "clientId": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "serviceType": { "type": "string" },
+        "notes": { "type": "string" },
+        "status": { "type": "string", "enum": ["Pending", "Approved", "Rescheduled", "Cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["clientId", "date", "time", "serviceType", "status", "createdAt", "updatedAt"]
+    },
+    "ProjectUpdate": {
+      "title": "Project Update",
+      "description": "Real-time updates posted by admin",
+      "type": "object",
+      "properties": {
+        "projectId": { "type": "string" },
+        "clientId": { "type": "string" },
+        "description": { "type": "string" },
+        "uploadedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["projectId", "clientId", "description", "uploadedBy", "createdAt"]
+    },
+    "File": {
+      "title": "File",
+      "description": "Shared files between admin and client",
+      "type": "object",
+      "properties": {
+        "projectId": { "type": "string" },
+        "clientId": { "type": "string" },
+        "uploadedBy": { "type": "string" },
+        "fileName": { "type": "string" },
+        "fileUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["projectId", "clientId", "uploadedBy", "fileName", "fileUrl", "createdAt"]
+    },
+    "Lead": {
+      "title": "Lead",
+      "description": "A lead submitted from the discovery form",
+      "type": "object",
+      "properties": {
+        "fullName": { "type": "string" },
+        "businessName": { "type": "string" },
+        "email": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "country": { "type": "string" },
+        "city": { "type": "string" },
+        "industry": { "type": "string" },
+        "businessStage": { "type": "string" },
+        "monthlyRevenue": { "type": "string" },
+        "marketingBudget": { "type": "string" },
+        "primaryGoals": { "type": "array", "items": { "type": "string" } },
+        "projectDescription": { "type": "string" },
+        "preferredDate": { "type": "string" },
+        "preferredTime": { "type": "string" },
+        "status": { "type": "string", "enum": ["New Lead", "Contacted", "Qualified", "Proposal Sent", "Closed Won", "Closed Lost"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["fullName", "email", "status", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Stores user profiles."
+    },
+    "projects/{projectId}": {
+      "schema": { "$ref": "#/entities/Project" },
+      "description": "Stores projects. Clients can view their projects, admins can view and edit."
+    },
+    "meetings/{meetingId}": {
+      "schema": { "$ref": "#/entities/Meeting" },
+      "description": "Scheduled meetings."
+    },
+    "projectUpdates/{updateId}": {
+      "schema": { "$ref": "#/entities/ProjectUpdate" },
+      "description": "Updates for specific projects."
+    },
+    "files/{fileId}": {
+      "schema": { "$ref": "#/entities/File" },
+      "description": "File references for specific projects."
+    },
+    "leads/{leadId}": {
+      "schema": { "$ref": "#/entities/Lead" },
+      "description": "Leads submitted from the discovery form."
+    }
+  }
+}

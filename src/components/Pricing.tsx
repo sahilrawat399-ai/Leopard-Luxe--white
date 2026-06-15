@@ -1,6 +1,7 @@
 import { motion } from 'motion/react';
 import { useState } from 'react';
 import { Check } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const plans = [
   {
@@ -51,6 +52,7 @@ const plans = [
 
 export function Pricing() {
   const [isYearly, setIsYearly] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <section className="py-32 bg-rich-black relative border-t border-white/5">
@@ -131,6 +133,7 @@ export function Pricing() {
               </ul>
 
               <button 
+                onClick={() => navigate('/discovery')}
                 className={`w-full py-4 rounded-full font-medium tracking-wide transition-all ${
                   plan.highlight 
                     ? 'bg-gold text-rich-black hover:bg-white hover:shadow-[0_0_20px_rgba(212,175,55,0.4)]' 

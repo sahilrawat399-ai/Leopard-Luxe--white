@@ -1,7 +1,10 @@
 import { motion } from 'motion/react';
 import { ArrowRight, Play, TrendingUp, ShieldCheck } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export function Hero() {
+  const navigate = useNavigate();
+
   return (
     <section className="relative min-h-screen flex items-center justify-center bg-white text-rich-black overflow-hidden pt-36 pb-16">
       {/* Moving Premium Gradients & Ambient Glow */}
@@ -168,7 +171,10 @@ export function Hero() {
           transition={{ duration: 1, delay: 0.8 }}
           className="flex flex-col sm:flex-row items-center gap-6"
         >
-          <button className="group relative px-8 py-4 bg-rich-black text-white rounded-full font-medium tracking-wide overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-[0_0_40px_rgba(10,10,10,0.2)]">
+          <button 
+            onClick={() => navigate('/discovery')}
+            className="group relative px-8 py-4 bg-rich-black text-white rounded-full font-medium tracking-wide overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-[0_0_40px_rgba(10,10,10,0.2)]"
+          >
             <div className="absolute inset-0 w-0 bg-gold transition-all duration-500 ease-out group-hover:w-full"></div>
             <span className="relative flex items-center gap-2 group-hover:text-rich-black z-10 transition-colors">
               Book A Strategy Call <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />

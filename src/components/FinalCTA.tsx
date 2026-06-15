@@ -1,7 +1,10 @@
 import { motion } from 'motion/react';
 import { ArrowRight, MessageCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export function FinalCTA() {
+  const navigate = useNavigate();
+
   return (
     <section className="relative py-40 bg-rich-black overflow-hidden flex items-center justify-center border-t border-gold/20">
       {/* Background radial gradient */}
@@ -24,17 +27,22 @@ export function FinalCTA() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-            <button className="group relative w-full sm:w-auto px-10 py-5 bg-gold text-rich-black rounded-full font-bold tracking-wide overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-[0_0_30px_rgba(212,175,55,0.3)]">
+            <button 
+              onClick={() => navigate('/discovery')}
+              className="group relative w-full sm:w-auto px-10 py-5 bg-gold text-rich-black rounded-full font-bold tracking-wide overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-[0_0_30px_rgba(212,175,55,0.3)]">
               <div className="absolute inset-0 w-0 bg-white transition-all duration-500 ease-out group-hover:w-full"></div>
               <span className="relative flex items-center justify-center gap-2 group-hover:text-rich-black z-10 transition-colors">
                 Book A Strategy Call <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </span>
             </button>
 
-            <button className="w-full sm:w-auto flex items-center justify-center gap-3 px-10 py-5 font-semibold text-white tracking-wide rounded-full border border-white/20 hover:bg-white/5 transition-all">
-              <MessageCircle className="w-5 h-5 text-green-500" />
-              Chat On WhatsApp
-            </button>
+            <a 
+              href="https://wa.me/919717550681" target="_blank" rel="noopener noreferrer"
+              className="w-full sm:w-auto flex items-center justify-center gap-3 px-10 py-5 font-semibold text-rich-black tracking-wide rounded-full bg-gradient-to-r from-[#D4AF37] to-[#B8860B] shadow-[0_0_20px_rgba(212,175,55,0.4)] hover:scale-105 transition-all"
+            >
+              <MessageCircle className="w-5 h-5" />
+              Chat With Leopard Luxe
+            </a>
           </div>
         </motion.div>
       </div>

@@ -6,7 +6,7 @@ import {
   Rocket, Sparkles, Target, BarChart, MonitorSmartphone, Search, 
   TrendingUp, Award, XCircle
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 function AnimatedCounter({ target, suffix, title }: { target: number, suffix: string, title: string }) {
   const ref = useRef(null);
@@ -108,6 +108,7 @@ const differences = [
 export function ResultsPage() {
   const [currentStory, setCurrentStory] = useState(0);
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
+  const navigate = useNavigate();
 
   const nextStory = () => setCurrentStory((p) => (p + 1) % successStories.length);
   const prevStory = () => setCurrentStory((p) => (p - 1 + successStories.length) % successStories.length);
@@ -155,7 +156,9 @@ export function ResultsPage() {
                 View Success Stories
               </span>
             </button>
-            <button className="w-full sm:w-auto text-center px-8 py-4 rounded-full border-2 border-gold text-gold font-bold tracking-widest text-sm uppercase transition-all duration-300 hover:bg-gold hover:text-rich-black">
+            <button 
+              onClick={() => navigate('/discovery')}
+              className="w-full sm:w-auto text-center px-8 py-4 rounded-full border-2 border-gold text-gold font-bold tracking-widest text-sm uppercase transition-all duration-300 hover:bg-gold hover:text-rich-black">
               Book Free Consultation
             </button>
           </div>
@@ -470,12 +473,14 @@ export function ResultsPage() {
             Partner with Leopard Luxe and discover how strategic websites, SEO, and digital marketing can transform your business growth.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-            <button className="w-full sm:w-auto px-8 py-4 rounded-full font-bold tracking-widest text-sm uppercase text-rich-black transition-all duration-300 hover:scale-105 shadow-[0_10px_30px_rgba(212,175,55,0.3)] bg-gradient-to-r from-[#D4AF37] to-[#B8860B]">
+            <button 
+              onClick={() => navigate('/discovery')}
+              className="w-full sm:w-auto px-8 py-4 rounded-full font-bold tracking-widest text-sm uppercase text-rich-black transition-all duration-300 hover:scale-105 shadow-[0_10px_30px_rgba(212,175,55,0.3)] bg-gradient-to-r from-[#D4AF37] to-[#B8860B]">
               Schedule Free Consultation
             </button>
-            <button className="w-full sm:w-auto px-8 py-4 rounded-full border-2 border-gold text-gold font-bold tracking-widest text-sm uppercase transition-all duration-300 hover:bg-gold hover:text-rich-black">
-              Start Your Project
-            </button>
+            <a href="mailto:agency@leopardluxe.in" className="w-full sm:w-auto px-8 py-4 rounded-full border-2 border-gold text-gold font-bold tracking-widest text-sm uppercase transition-all duration-300 hover:bg-gold hover:text-rich-black text-center">
+              Contact Us by Email
+            </a>
           </div>
         </div>
       </section>
