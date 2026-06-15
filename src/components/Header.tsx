@@ -2,6 +2,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useState, useEffect } from 'react';
 import { Phone, ArrowRight, Menu, X } from 'lucide-react';
 
+import logoSvg from '/assets/images/logo-bg.png';
+
 const desktopLinks = ['Services', 'Results', 'Pricing', 'FAQ'];
 const mobileLinks = ['Home', 'Services', 'Process', 'Case Studies', 'Results', 'Pricing', 'FAQ', 'Contact'];
 
@@ -56,12 +58,8 @@ export function Header() {
         {/* LEFT SECTION: Logo & Brand */}
         <div className="relative z-10 flex items-center gap-4 cursor-pointer">
           {/* Abstract Roaring Leopard Logo */}
-          <div className="w-12 h-12 relative flex items-center justify-center">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-10 h-10 text-gold drop-shadow-[0_0_8px_rgba(212,175,55,0.6)]">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-              {/* Added abstract roaring mouth elements to basic gem shape */}
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 13l2 -2m-2 2l2 2" />
-            </svg>
+          <div className="w-20 h-12 relative flex items-center justify-center">
+            <img src={logoSvg} alt="Leopard Luxe Logo" className="w-20 h-12 object-contain" />
           </div>
           <div className="flex flex-col">
             <div className="font-serif text-xl tracking-[0.15em] font-bold leading-none mb-1 flex items-center">

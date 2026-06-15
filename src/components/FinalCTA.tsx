@@ -6,23 +6,6 @@ export function FinalCTA() {
     <section className="relative py-40 bg-rich-black overflow-hidden flex items-center justify-center border-t border-gold/20">
       {/* Background radial gradient */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(212,175,55,0.15)_0%,rgba(10,10,10,1)_70%)]" />
-      
-      {/* Golden Leopard Watermark / Abstract Shape */}
-      <motion.div 
-        className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none"
-        animate={{ scale: [1, 1.05, 1], rotate: [0, 2, 0] }}
-        transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="url(#goldGradient)" strokeWidth={0.5} className="w-[800px] h-[800px]">
-          <defs>
-            <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#D4AF37" />
-              <stop offset="100%" stopColor="#B89626" />
-            </linearGradient>
-          </defs>
-          <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-        </svg>
-      </motion.div>
 
       <div className="relative z-10 container mx-auto px-6 lg:px-12 text-center max-w-4xl">
         <motion.div
