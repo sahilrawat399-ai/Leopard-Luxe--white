@@ -1,11 +1,12 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useEffect } from 'react';
 import { Phone, ArrowRight, Menu, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 import logoSvg from '/assets/images/logo-bg.png';
 
-const desktopLinks = ['Services', 'Results', 'Pricing', 'FAQ'];
-const mobileLinks = ['Home', 'Services', 'Process', 'Case Studies', 'Results', 'Pricing', 'FAQ', 'Contact'];
+const desktopLinks = ['Services', 'Portfolio', 'Results', 'Pricing', 'FAQ'];
+const mobileLinks = ['Home', 'Services', 'Portfolio', 'Process', 'Case Studies', 'Results', 'Pricing', 'FAQ', 'Contact'];
 
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -57,10 +58,9 @@ export function Header() {
 
         {/* LEFT SECTION: Logo & Brand */}
         <div className="relative z-10 flex items-center gap-4 cursor-pointer">
-          {/* Abstract Roaring Leopard Logo */}
-          <div className="w-20 h-12 relative flex items-center justify-center">
+          <Link to="/" className="w-20 h-12 relative flex items-center justify-center">
             <img src={logoSvg} alt="Leopard Luxe Logo" className="w-20 h-12 object-contain" />
-          </div>
+          </Link>
           <div className="flex flex-col">
             <div className="font-serif text-xl tracking-[0.15em] font-bold leading-none mb-1 flex items-center">
               <span className="text-white">LEOPARD</span>
@@ -75,9 +75,9 @@ export function Header() {
         {/* CENTER NAVIGATION */}
         <nav className="relative z-10 hidden xl:flex items-center gap-8">
           {desktopLinks.map((link) => (
-            <a
+            <Link
               key={link}
-              href={`#${link.toLowerCase().replace(' ', '-')}`}
+              to={link === 'Portfolio' ? '/portfolio' : link === 'Services' ? '/services' : `/#${link.toLowerCase().replace(' ', '-')}`}
               className="group relative font-sans text-xs tracking-[0.15em] text-white uppercase font-semibold py-2 hover:text-gold transition-colors duration-300"
             >
               {link}
@@ -86,7 +86,7 @@ export function Header() {
               
               {/* Shine effect on hover */}
               <span className="absolute inset-0 w-0 bg-gradient-to-r from-transparent via-white/10 to-transparent group-hover:w-full transition-all duration-500 opacity-0 group-hover:opacity-100 mix-blend-overlay"></span>
-            </a>
+            </Link>
           ))}
         </nav>
 
@@ -126,17 +126,20 @@ export function Header() {
              
             <nav className="flex flex-col items-center gap-6 relative z-10 w-full pt-32 pb-24 px-6 min-h-screen">
               {mobileLinks.map((link, index) => (
-                <motion.a
+                <Link
                   key={link}
-                  href={`#${link.toLowerCase().replace(' ', '-')}`}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1, duration: 0.3 }}
+                  to={link === 'Portfolio' ? '/portfolio' : link === 'Services' ? '/services' : `/#${link.toLowerCase().replace(' ', '-')}`}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="font-serif text-3xl md:text-4xl text-white hover:text-gold transition-colors"
                 >
-                  {link}
-                </motion.a>
+                  <motion.span
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1, duration: 0.3 }}
+                  >
+                    {link}
+                  </motion.span>
+                </Link>
               ))}
               
               <motion.div 
