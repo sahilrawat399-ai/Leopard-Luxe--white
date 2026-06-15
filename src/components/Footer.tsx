@@ -9,9 +9,11 @@ export function Footer() {
           {/* Brand Info */}
           <div className="lg:col-span-1">
             <h3 className="font-serif text-2xl text-gold tracking-widest uppercase mb-6 flex items-center gap-3">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-6 h-6 text-gold">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-              </svg>
+              <img
+                 src="/assets/images/logo-bg.png"
+                  alt="Leopard Luxe Logo"
+                  className="w-10 h-10 object-contain"
+              />
               Leopard Luxe
             </h3>
             <p className="text-sm text-gray-500 leading-relaxed font-sans max-w-xs">

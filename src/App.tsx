@@ -12,6 +12,7 @@ import { FloatingButtons } from './components/FloatingButtons';
 import { Home } from './pages/Home';
 import { Portfolio } from './pages/Portfolio';
 import { ServicesPage } from './pages/ServicesPage';
+import { ResultsPage } from './pages/ResultsPage';
 import { ScrollToTop } from './components/ScrollToTop';
 
 export default function App() {
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/services" element={<ServicesPage />} />
+          <Route path="/results" element={<ResultsPage />} />
         </Routes>
         <Footer />
         <FloatingButtons />

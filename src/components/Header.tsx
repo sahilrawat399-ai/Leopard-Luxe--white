@@ -77,7 +77,7 @@ export function Header() {
           {desktopLinks.map((link) => (
             <Link
               key={link}
-              to={link === 'Portfolio' ? '/portfolio' : link === 'Services' ? '/services' : `/#${link.toLowerCase().replace(' ', '-')}`}
+              to={link === 'Portfolio' ? '/portfolio' : link === 'Services' ? '/services' : link === 'Results' ? '/results' : `/#${link.toLowerCase().replace(' ', '-')}`}
               className="group relative font-sans text-xs tracking-[0.15em] text-white uppercase font-semibold py-2 hover:text-gold transition-colors duration-300"
             >
               {link}
@@ -128,7 +128,7 @@ export function Header() {
               {mobileLinks.map((link, index) => (
                 <Link
                   key={link}
-                  to={link === 'Portfolio' ? '/portfolio' : link === 'Services' ? '/services' : `/#${link.toLowerCase().replace(' ', '-')}`}
+                  to={link === 'Portfolio' ? '/portfolio' : link === 'Services' ? '/services' : link === 'Results' ? '/results' : `/#${link.toLowerCase().replace(' ', '-')}`}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="font-serif text-3xl md:text-4xl text-white hover:text-gold transition-colors"
                 >
