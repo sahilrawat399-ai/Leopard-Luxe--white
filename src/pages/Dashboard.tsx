@@ -2,9 +2,11 @@ import { useAuthStore } from '../stores/authStore';
 import { Navigate } from 'react-router-dom';
 
 export function Dashboard() {
-  const { dbUser } = useAuthStore();
+  const { dbUser, user } = useAuthStore();
 
-  if (dbUser?.role === 'admin') {
+  const isTargetAdmin = user?.email?.toLowerCase() === 'sahilrawat399@gmail.com' || dbUser?.role === 'admin';
+
+  if (isTargetAdmin) {
     return <Navigate to="/admin" />;
   }
 

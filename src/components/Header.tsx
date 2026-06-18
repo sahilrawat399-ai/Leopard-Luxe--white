@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useState, useEffect } from 'react';
 import { Phone, ArrowRight, Menu, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../stores/authStore';
 
 import logoSvg from '/assets/images/logo-bg.png';
 
@@ -9,6 +10,8 @@ const desktopLinks = ['Services', 'Portfolio', 'Results', 'Pricing', 'FAQ'];
 const mobileLinks = ['Home', 'Services', 'Portfolio', 'Process', 'Case Studies', 'Results', 'Pricing', 'FAQ', 'Contact'];
 
 export function Header() {
+  const { user } = useAuthStore();
+  const isAdmin = user?.email?.toLowerCase() === 'sahilrawat399@gmail.com';
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
@@ -89,12 +92,21 @@ export function Header() {
               <span className="absolute inset-0 w-0 bg-gradient-to-r from-transparent via-white/10 to-transparent group-hover:w-full transition-all duration-500 opacity-0 group-hover:opacity-100 mix-blend-overlay"></span>
             </Link>
           ))}
+          {isAdmin && (
+            <Link
+              to="/admin"
+              className="group relative font-sans text-xs tracking-[0.15em] text-gold hover:text-white uppercase font-bold py-2 transition-colors duration-300"
+            >
+              Admin Panel
+              <span className="absolute bottom-0 left-0 w-0 h-[2px] bg-gradient-to-r from-[#D4AF37] to-[#B8860B] transition-all duration-300 group-hover:w-full rounded-full shadow-[0_0_8px_rgba(212,175,55,0.5)]"></span>
+            </Link>
+          )}
         </nav>
 
         {/* RIGHT SECTION: Buttons */}
         <div className="relative z-10 hidden lg:flex items-center gap-4">
-          <Link to="/login" className="hidden lg:inline-flex items-center justify-center gap-2 group border border-gold/30 hover:border-gold bg-transparent text-gold px-6 py-3 rounded-[14px] font-bold tracking-widest text-xs uppercase transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_15px_rgba(212,175,55,0.2)]">
-            Client Portal
+          <Link to={user ? "/dashboard" : "/login"} className="hidden lg:inline-flex items-center justify-center gap-2 group border border-gold/30 hover:border-gold bg-transparent text-gold px-6 py-3 rounded-[14px] font-bold tracking-widest text-xs uppercase transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_15px_rgba(212,175,55,0.2)]">
+            {user ? 'My Dashboard' : 'Sign In / Sign Up'}
           </Link>
           <button onClick={() => navigate('/discovery')} className="group relative flex items-center gap-2 px-6 py-3 rounded-[14px] font-bold tracking-widest text-xs uppercase text-rich-black transition-all duration-300 hover:-translate-y-1 shadow-[0_5px_20px_rgba(212,175,55,0.3)] bg-gradient-to-r from-[#D4AF37] to-[#B8860B] overflow-hidden">
             {/* Shine sweep */}
@@ -145,6 +157,21 @@ export function Header() {
                   </motion.span>
                 </Link>
               ))}
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="font-serif text-3xl md:text-4xl text-gold hover:text-white transition-colors font-bold"
+                >
+                  <motion.span
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: mobileLinks.length * 0.1, duration: 0.3 }}
+                  >
+                    Admin Panel
+                  </motion.span>
+                </Link>
+              )}
               
               <motion.div 
                  initial={{ opacity: 0 }}
@@ -152,7 +179,14 @@ export function Header() {
                  transition={{ delay: 0.5 }}
                  className="flex flex-col items-center gap-4 mt-8 w-full max-w-sm"
               >
-                 <button className="w-full flex items-center justify-center gap-2 px-5 py-4 rounded-full border border-gold text-gold font-medium tracking-widest text-sm uppercase">
+                 <Link
+                   to={user ? "/dashboard" : "/login"}
+                   onClick={() => setIsMobileMenuOpen(false)}
+                   className="w-full flex items-center justify-center gap-2 px-5 py-4 rounded-[14px] border border-gold text-gold font-bold tracking-widest text-sm uppercase text-center cursor-pointer select-none"
+                 >
+                   {user ? 'My Dashboard' : 'Sign In / Sign Up'}
+                 </Link>
+                 <button className="w-full flex items-center justify-center gap-2 px-5 py-4 rounded-[14px] border border-gold/40 text-gold/80 font-medium tracking-widest text-sm uppercase cursor-pointer">
                    <Phone className="w-5 h-5" />
                    Call Us
                  </button>

@@ -9,8 +9,11 @@ service cloud.firestore {
     // --- Core Helpers ---
     function isSignedIn() { return request.auth != null; }
     function isAdmin() { 
-      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) 
-          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'; 
+      return isSignedIn() && (
+        ('email' in request.auth.token && request.auth.token.email.toLowerCase() == 'sahilrawat399@gmail.com') ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) 
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      ); 
     }
     
     function incoming() { return request.resource.data; }
@@ -61,6 +64,20 @@ service cloud.firestore {
         && data.updatedAt is timestamp
         && (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000));
     }
+
+    function isValidBooking(data) {
+      return data.keys().hasAll(['bookingId', 'userId', 'userName', 'userEmail', 'serviceType', 'bookingDate', 'bookingTime', 'notes', 'status', 'createdAt'])
+        && data.bookingId is string && data.bookingId.size() == 6
+        && data.userId is string && data.userId.size() <= 128
+        && data.userName is string && data.userName.size() <= 150
+        && data.userEmail is string && data.userEmail.size() <= 150
+        && data.serviceType is string && data.serviceType.size() <= 150
+        && data.bookingDate is string && data.bookingDate.size() <= 20
+        && data.bookingTime is string && data.bookingTime.size() <= 20
+        && data.notes is string && data.notes.size() <= 1500
+        && data.status is string && data.status in ['Pending', 'Approved', 'Completed', 'Rejected']
+        && data.createdAt is timestamp;
+    }
     
     function isValidProjectUpdate(data) {
       return data.keys().hasAll(['projectId', 'clientId', 'description', 'uploadedBy', 'createdAt'])
@@ -97,14 +114,16 @@ service cloud.firestore {
       // Admin can list users. Clients have no business listing users.
       allow list: if isAdmin();
 
-      // Only allow creation of own profile, with 'client' role initially.
-      // (Unless they are becoming an admin via some out-of-band way, but for now strictly 'client' for self-signup)
+      // Only allow creation of own profile, with 'client' role initially (except sahilrawat399 who can be bootstrapped as admin).
       allow create: if isSignedIn() 
         && isValidId(userId)
         && request.auth.uid == userId
         && isValidUser(incoming())
         && incoming().createdAt == request.time
-        && incoming().role == 'client'
+        && (
+          incoming().role == 'client' ||
+          (incoming().role == 'admin' && 'email' in request.auth.token && request.auth.token.email.toLowerCase() == 'sahilrawat399@gmail.com')
+        )
         && incoming().keys().size() <= 7;
         
       allow update: if isSignedIn() 
@@ -165,11 +184,35 @@ service cloud.firestore {
         && incoming().createdAt == existing().createdAt
         && incoming().clientId == existing().clientId
         && (
-            isAdmin() || 
-            (request.auth.uid == existing().clientId && incoming().status == 'Cancelled' && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']))
+          isAdmin() || 
+          (request.auth.uid == existing().clientId && incoming().status == 'Cancelled' && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']))
         ));
         
       allow delete: if isAdmin() && isValidId(meetingId);
+    }
+
+    match /bookings/{bookingId} {
+      allow read: if isSignedIn() && isValidId(bookingId) && (isAdmin() || existing().userId == request.auth.uid);
+      allow list: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      
+      // Client can book meeting
+      allow create: if isSignedIn()
+        && isValidId(bookingId)
+        && isValidBooking(incoming())
+        && incoming().createdAt == request.time
+        && incoming().userId == request.auth.uid
+        && incoming().status == 'Pending';
+        
+      // Admin can update
+      allow update: if isSignedIn()
+        && isValidId(bookingId)
+        && isValidBooking(incoming())
+        && isAdmin()
+        && incoming().bookingId == existing().bookingId
+        && incoming().userId == existing().userId
+        && incoming().createdAt == existing().createdAt;
+        
+      allow delete: if isAdmin() && isValidId(bookingId);
     }
     
     match /projectUpdates/{updateId} {

@@ -25,6 +25,7 @@ import { ClientPortal } from './pages/ClientPortal';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { DiscoveryPage } from './pages/DiscoveryPage';
 import { ScrollToTop } from './components/ScrollToTop';
+import { AnalyticsTracker } from './components/AnalyticsTracker';
 
 export default function App() {
   const [preloaderFinished, setPreloaderFinished] = useState(false);
@@ -32,6 +33,7 @@ export default function App() {
   return (
     <AuthProvider>
       <Router>
+        <AnalyticsTracker />
         <ScrollToTop />
         {!preloaderFinished && <Preloader onComplete={() => setPreloaderFinished(true)} />}
         

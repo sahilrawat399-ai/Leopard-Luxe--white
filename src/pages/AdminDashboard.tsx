@@ -1,474 +1,475 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
-import { db } from '../lib/firebase';
-import { collection, query, onSnapshot, getDocs, orderBy, updateDoc, doc, addDoc, where, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, auth } from '../lib/firebase';
+import { collection, query, onSnapshot, orderBy, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
-import { format } from 'date-fns';
-import { Users, Calendar, FolderKanban, LogOut, Upload, FileText, Download, UserPlus } from 'lucide-react';
-import { auth, storage } from '../lib/firebase';
 import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
+import { motion, AnimatePresence } from 'motion/react';
+import { 
+  Users, Calendar, Briefcase, LogOut, FileText, Trash2, 
+  LayoutDashboard, Activity, Heart, Contact, Landmark, Sparkles, 
+  Settings, Crown, Sun, Moon, CheckCircle2, AlertOctagon, HelpCircle 
+} from 'lucide-react';
+import { trackCustomEvent } from '../lib/analytics';
 
-const PROJECT_STAGES = [
-  "Onboarding", "Discovery & Research", "Strategy Planning", "Project Started", 
-  "Phase 1 Development", "Phase 2 Development", "Phase 3 Optimization", 
-  "Client Review", "Final Revisions", "Project Completed"
-];
-
-const LEAD_STAGES = [
-  "New Lead", "Contacted", "Qualified", "Proposal Sent", "Closed Won", "Closed Lost"
-];
-
-function AdminLeads() {
-  const [leads, setLeads] = useState<any[]>([]);
-
-  useEffect(() => {
-    const q = query(collection(db, 'leads'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, snapshot => {
-      setLeads(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    }, error => handleFirestoreError(error, OperationType.GET, 'leads'));
-    return () => unsubscribe();
-  }, []);
-
-  const updateLeadStatus = async (leadId: string, newStatus: string) => {
-    try {
-      await updateDoc(doc(db, 'leads', leadId), {
-        status: newStatus,
-        updatedAt: serverTimestamp()
-      });
-    } catch(err) {
-      handleFirestoreError(err, OperationType.UPDATE, `leads/${leadId}`);
-    }
-  }
-  
-  const handleContact = (email: string) => {
-    window.location.href = `mailto:${email}`;
-  }
-
-  return (
-    <div className="space-y-4">
-      {leads.map((lead) => (
-        <div key={lead.id} className="bg-white/5 border border-white/10 rounded-xl p-6 relative overflow-hidden">
-           {lead.status === 'New Lead' && <div className="absolute top-0 right-0 bg-gold text-rich-black text-xs font-bold px-3 py-1 rounded-bl-xl">NEW</div>}
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-             <div>
-               <h4 className="font-serif text-xl font-bold text-white">{lead.fullName}</h4>
-               <p className="text-gray-400 text-sm mb-4">{lead.businessName} • {lead.industry}</p>
-               <div className="space-y-1 mb-4">
-                  <p className="text-xs text-gray-400"><span className="text-gray-500 w-16 inline-block">Email:</span> <span className="text-white">{lead.email}</span></p>
-                  <p className="text-xs text-gray-400"><span className="text-gray-500 w-16 inline-block">Phone:</span> <span className="text-white">{lead.phoneNumber}</span></p>
-                  <p className="text-xs text-gray-400"><span className="text-gray-500 w-16 inline-block">Location:</span> <span className="text-white">{lead.city}, {lead.country}</span></p>
-               </div>
-               <div className="flex gap-2">
-                 <button onClick={() => handleContact(lead.email)} className="px-4 py-2 bg-white/10 hover:bg-gold hover:text-rich-black text-white text-xs font-bold rounded-lg transition-colors">
-                   Email Lead
-                 </button>
-               </div>
-             </div>
-             
-             <div>
-               <div className="bg-rich-black p-4 rounded-xl border border-white/5 mb-4">
-                 <div className="grid grid-cols-2 gap-4 mb-2">
-                   <div>
-                     <span className="text-[10px] uppercase tracking-widest text-gray-500 font-bold block mb-1">Stage</span>
-                     <span className="text-sm text-white">{lead.businessStage || 'N/A'}</span>
-                   </div>
-                   <div>
-                     <span className="text-[10px] uppercase tracking-widest text-gray-500 font-bold block mb-1">Revenue</span>
-                     <span className="text-sm text-white">{lead.monthlyRevenue || 'N/A'}</span>
-                   </div>
-                   <div>
-                     <span className="text-[10px] uppercase tracking-widest text-gray-500 font-bold block mb-1">Budget</span>
-                     <span className="text-sm text-white">{lead.marketingBudget || 'N/A'}</span>
-                   </div>
-                   <div>
-                     <span className="text-[10px] uppercase tracking-widest text-gray-500 font-bold block mb-1">Pref. Date</span>
-                     <span className="text-sm text-white">{lead.preferredDate ? `${lead.preferredDate} ${lead.preferredTime}` : 'N/A'}</span>
-                   </div>
-                 </div>
-                 
-                 <div className="mt-4">
-                   <span className="text-[10px] uppercase tracking-widest text-gray-500 font-bold block mb-2">Goals</span>
-                   <div className="flex flex-wrap gap-2">
-                     {(lead.primaryGoals || []).map((goal: string) => (
-                       <span key={goal} className="text-[10px] px-2 py-1 bg-gold/10 text-gold rounded border border-gold/20">{goal}</span>
-                     ))}
-                   </div>
-                 </div>
-               </div>
-               
-               {lead.projectDescription && (
-                 <div className="mb-4">
-                   <p className="text-xs text-gray-400 italic border-l-2 border-gold/30 pl-3">"{lead.projectDescription}"</p>
-                 </div>
-               )}
-
-               <div className="flex items-center gap-3">
-                  <label className="text-xs text-gray-500 font-bold uppercase tracking-widest shrink-0">Status</label>
-                  <select 
-                    value={lead.status}
-                    onChange={(e) => updateLeadStatus(lead.id, e.target.value)}
-                    className={`flex-1 bg-rich-black border text-sm rounded-lg px-3 py-2 focus:outline-none ${lead.status === 'New Lead' ? 'border-blue-500 text-blue-500' : lead.status === 'Closed Won' ? 'border-green-500 text-green-500' : lead.status === 'Closed Lost' ? 'border-red-500 text-red-500' : 'border-yellow-500 text-yellow-500'}`}
-                  >
-                    {LEAD_STAGES.map(stage => <option key={stage} value={stage}>{stage}</option>)}
-                  </select>
-               </div>
-             </div>
-           </div>
-        </div>
-      ))}
-      {leads.length === 0 && <p className="text-gray-500 p-6 text-center bg-white/5 rounded-xl border border-white/10">No leads found.</p>}
-    </div>
-  );
-}
-
-function AdminProjects({ users }: { users: any[] }) {
-  const [projects, setProjects] = useState<any[]>([]);
-  const { user } = useAuthStore();
-  const [newUpdate, setNewUpdate] = useState<{ [projectId: string]: string }>({});
-  const [files, setFiles] = useState<{ [projectId: string]: any[] }>({});
-  const [uploadingFile, setUploadingFile] = useState<{ [projectId: string]: boolean }>({});
-
-  useEffect(() => {
-    const q = query(collection(db, 'projects'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, snapshot => {
-      setProjects(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    }, error => handleFirestoreError(error, OperationType.GET, 'projects'));
-
-    const uploadQuery = query(collection(db, 'files'), orderBy('createdAt', 'desc'));
-    const unsubscribeFiles = onSnapshot(uploadQuery, snapshot => {
-       const newFiles: { [projectId: string]: any[] } = {};
-       snapshot.docs.forEach(doc => {
-          const data = doc.data();
-          if(!newFiles[data.projectId]) newFiles[data.projectId] = [];
-          newFiles[data.projectId].push({ id: doc.id, ...data });
-       });
-       setFiles(newFiles);
-    }, error => handleFirestoreError(error, OperationType.GET, 'files'));
-
-    return () => { unsubscribe(); unsubscribeFiles(); };
-  }, []);
-
-  const handleAdminFileUpload = async (projectId: string, clientId: string, e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file || !user) return;
-      
-      setUploadingFile(prev => ({ ...prev, [projectId]: true }));
-      try {
-        const storageRef = ref(storage, `projects/${projectId}/${Date.now()}_${file.name}`);
-        const snapshot = await uploadBytes(storageRef, file);
-        const url = await getDownloadURL(snapshot.ref);
-        
-        await addDoc(collection(db, 'files'), {
-          projectId,
-          clientId,
-          uploadedBy: user.uid,
-          fileName: file.name,
-          fileUrl: url,
-          createdAt: serverTimestamp()
-        });
-        alert('File uploaded successfully!');
-      } catch (err: any) {
-        if(err.code === 'storage/unauthorized') {
-            alert('File upload requires Firebase Storage rules to be configured. For now this preview environment might not have Storage fully configured.');
-        } else {
-            alert('File upload failed: ' + err.message);
-        }
-      } finally {
-        setUploadingFile(prev => ({ ...prev, [projectId]: false }));
-        if(e.target) e.target.value = '';
-      }
-  };
-
-  const updateProjectStatus = async (projectId: string, newStatus: string, clientId: string) => {
-    const pCompleted = Math.round((PROJECT_STAGES.indexOf(newStatus) / (PROJECT_STAGES.length - 1)) * 100);
-    try {
-      await updateDoc(doc(db, 'projects', projectId), {
-        status: newStatus,
-        percentageCompleted: pCompleted,
-        updatedAt: serverTimestamp()
-      });
-    } catch(err: any) {
-        handleFirestoreError(err, OperationType.UPDATE, `projects/${projectId}`);
-    }
-  };
-
-  const postUpdate = async (projectId: string, clientId: string) => {
-    if (!newUpdate[projectId]) return;
-    try {
-      await addDoc(collection(db, 'projectUpdates'), {
-        projectId,
-        clientId,
-        description: newUpdate[projectId],
-        uploadedBy: 'Admin',
-        createdAt: serverTimestamp()
-      });
-      setNewUpdate(prev => ({ ...prev, [projectId]: '' }));
-    } catch(err: any) {
-       handleFirestoreError(err, OperationType.CREATE, 'projectUpdates');
-    }
-  };
-
-  const createProjectForUser = async (clientId: string) => {
-    try {
-      await addDoc(collection(db, 'projects'), {
-        clientId,
-        status: 'Onboarding',
-        percentageCompleted: 0,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
-    } catch(err: any) {
-       handleFirestoreError(err, OperationType.CREATE, 'projects');
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="border border-white/10 rounded-2xl bg-[#0A0A0A] p-6 mb-8">
-        <h3 className="text-white font-bold mb-4 font-serif text-xl">Create Project for User</h3>
-        <div className="flex flex-wrap gap-4">
-          {users.filter(u => u.role === 'client' && !projects.find(p => p.clientId === u.id)).map(u => (
-             <button 
-                key={u.id}
-                onClick={() => createProjectForUser(u.id)}
-                className="px-4 py-2 border border-gold/30 text-gold rounded-lg hover:bg-gold/10 text-sm"
-             >
-                + Create Project for {u.fullName}
-             </button>
-          ))}
-          {users.filter(u => u.role === 'client' && !projects.find(p => p.clientId === u.id)).length === 0 && (
-             <p className="text-gray-500 text-sm">All clients currently have a project.</p>
-          )}
-        </div>
-      </div>
-
-      {projects.map(project => {
-        const client = users.find(u => u.id === project.clientId);
-        return (
-          <div key={project.id} className="bg-white/5 border border-white/10 rounded-2xl p-6">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h4 className="font-bold text-white text-lg">{client?.fullName || 'Unknown Client'}</h4>
-                <p className="text-gray-400 text-sm">{client?.businessName}</p>
-              </div>
-              <div className="text-right">
-                <span className="text-gold font-bold">{project.percentageCompleted}%</span>
-              </div>
-            </div>
-
-            <div className="mb-4">
-              <label className="text-xs text-gray-500 uppercase tracking-widest font-bold mb-2 block">Status</label>
-              <select 
-                value={project.status}
-                onChange={(e) => updateProjectStatus(project.id, e.target.value, project.clientId)}
-                className="w-full bg-rich-black border border-white/10 text-white rounded-lg px-3 py-2 focus:outline-none focus:border-gold"
-              >
-                {PROJECT_STAGES.map(stage => (
-                  <option key={stage} value={stage}>{stage}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="border-t border-white/10 pt-4 mt-4">
-               <div className="flex items-center justify-between mb-4">
-                  <label className="text-xs text-gray-500 uppercase tracking-widest font-bold block">Files</label>
-                  <label className="cursor-pointer group flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold tracking-widest text-[10px] uppercase text-rich-black transition-all bg-gold hover:bg-gold/90">
-                    {uploadingFile[project.id] ? (
-                       <div className="w-3 h-3 border-2 border-rich-black border-t-transparent rounded-full animate-spin"></div>
-                    ) : (
-                       <Upload className="w-3 h-3" />
-                    )}
-                    <span>Upload</span>
-                    <input type="file" className="hidden" onChange={(e) => handleAdminFileUpload(project.id, project.clientId, e)} disabled={uploadingFile[project.id]} />
-                  </label>
-               </div>
-               
-               <div className="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-                  {(files[project.id] || []).length === 0 ? (
-                    <p className="text-gray-500 italic text-sm">No files uploaded.</p>
-                  ) : (
-                    (files[project.id] || []).map(file => (
-                       <div key={file.id} className="flex items-center justify-between bg-rich-black p-2 rounded-lg border border-white/5">
-                          <div className="flex items-center gap-2 overflow-hidden">
-                             <FileText className="w-4 h-4 text-gold shrink-0" />
-                             <span className="text-white text-xs truncate">{file.fileName}</span>
-                          </div>
-                          <a href={file.fileUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 text-gray-400 hover:text-white bg-white/5 hover:bg-gold rounded-full transition-colors shrink-0 ml-2">
-                             <Download className="w-3 h-3" />
-                          </a>
-                       </div>
-                    ))
-                  )}
-               </div>
-            </div>
-            
-            <div className="border-t border-white/10 pt-4 mt-4">
-               <label className="text-xs text-gray-500 uppercase tracking-widest font-bold mb-2 block">Post Progress Update</label>
-               <div className="flex gap-2">
-                 <input 
-                   type="text" 
-                   value={newUpdate[project.id] || ''}
-                   onChange={(e) => setNewUpdate(prev => ({ ...prev, [project.id]: e.target.value }))}
-                   placeholder="E.g., Homepage design completed..." 
-                   className="flex-1 bg-rich-black border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-gold text-sm"
-                 />
-                 <button 
-                  onClick={() => postUpdate(project.id, project.clientId)}
-                  disabled={!newUpdate[project.id]}
-                  className="px-4 py-2 bg-gold text-rich-black font-bold rounded-lg text-sm disabled:opacity-50"
-                 >Post</button>
-               </div>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function AdminMeetings({ users }: { users: any[] }) {
-  const [meetings, setMeetings] = useState<any[]>([]);
-
-  useEffect(() => {
-    const q = query(collection(db, 'meetings'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, snapshot => {
-      setMeetings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    }, error => handleFirestoreError(error, OperationType.GET, 'meetings'));
-    return () => unsubscribe();
-  }, []);
-
-  const updateMeetingStatus = async (meetingId: string, newStatus: string) => {
-    try {
-      await updateDoc(doc(db, 'meetings', meetingId), {
-        status: newStatus,
-        updatedAt: serverTimestamp()
-      });
-    } catch(err) {
-      handleFirestoreError(err, OperationType.UPDATE, `meetings/${meetingId}`);
-    }
-  }
-
-  return (
-    <div className="space-y-4">
-      {meetings.map((meeting) => {
-        const client = users.find(u => u.id === meeting.clientId);
-        return (
-          <div key={meeting.id} className="bg-white/5 border border-white/10 rounded-xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-             <div>
-                <p className="font-bold text-white">{client?.fullName || 'Unknown'} - {meeting.serviceType}</p>
-                <p className="text-sm text-gray-400">{meeting.date} at {meeting.time}</p>
-                {meeting.notes && (
-                  <p className="text-sm text-gray-500 mt-2 bg-rich-black p-2 rounded">Note: {meeting.notes}</p>
-                )}
-             </div>
-             <div className="flex items-center gap-3">
-                <select 
-                  value={meeting.status}
-                  onChange={(e) => updateMeetingStatus(meeting.id, e.target.value)}
-                  className={`bg-rich-black border text-sm rounded-lg px-3 py-2 focus:outline-none ${meeting.status === 'Pending' ? 'border-yellow-500 text-yellow-500' : meeting.status === 'Approved' ? 'border-green-500 text-green-500' : 'border-red-500 text-red-500'}`}
-                >
-                  <option value="Pending">Pending</option>
-                  <option value="Approved">Approved</option>
-                  <option value="Rescheduled">Rescheduled</option>
-                  <option value="Cancelled">Cancelled</option>
-                </select>
-             </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
+// Modular Tab Component Imports
+import { OverviewTab } from '../components/admin/OverviewTab';
+import { LiveAnalyticsTab } from '../components/admin/LiveAnalyticsTab';
+import { LeadsAndFormsTab } from '../components/admin/LeadsAndFormsTab';
+import { ClientsAndProjectsTab } from '../components/admin/ClientsAndProjectsTab';
+import { TasksAndTeamTab } from '../components/admin/TasksAndTeamTab';
+import { MarketingAndFinanceTab } from '../components/admin/MarketingAndFinanceTab';
+import { ContentAndAutomationTab } from '../components/admin/ContentAndAutomationTab';
+import { SettingsAndReportsTab } from '../components/admin/SettingsAndReportsTab';
 
 export function AdminDashboard() {
-  const { dbUser } = useAuthStore();
+  const { dbUser, user, loading } = useAuthStore();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'projects' | 'meetings' | 'clients' | 'leads'>('leads');
-  const [users, setUsers] = useState<any[]>([]);
 
+  // Active Tab state (default to executive Overview)
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'live-analytics' | 'leads' | 'projects' | 'tasks' | 'marketing-finance' | 'content-automation' | 'meetings' | 'settings-reports'
+  >('overview');
+
+  // Theme support (Light Mode default #FFFFFF and #FAF9F6)
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    const saved = localStorage.getItem('leopard_luxe_admin_theme_mode');
+    return saved === 'dark';
+  });
+
+  // Users and Meetings live datasets
+  const [users, setUsers] = useState<any[]>([]);
+  const [bookings, setBookings] = useState<any[]>([]);
+
+  // Enforce rigid Admin email protection
   useEffect(() => {
-    if (dbUser?.role !== 'admin') return;
+    if (!loading) {
+      const isTargetAdmin = user?.email?.toLowerCase() === 'sahilrawat399@gmail.com';
+      if (!isTargetAdmin) {
+        navigate('/portal');
+      }
+    }
+  }, [user, loading, navigate]);
+
+  // Sync isDarkMode to localStorage preference
+  useEffect(() => {
+    localStorage.setItem('leopard_luxe_admin_theme_mode', isDarkMode ? 'dark' : 'light');
+  }, [isDarkMode]);
+
+  // Real-time Users hook
+  useEffect(() => {
+    const isTargetAdmin = user?.email?.toLowerCase() === 'sahilrawat399@gmail.com';
+    if (!isTargetAdmin) return;
+
     const unsubscribe = onSnapshot(collection(db, 'users'), snapshot => {
       setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    }, error => handleFirestoreError(error, OperationType.GET, 'users'));
+    }, error => {
+      handleFirestoreError(error, OperationType.GET, 'users');
+    });
     return () => unsubscribe();
-  }, [dbUser]);
+  }, [user]);
+
+  // Real-time Bookings list hook
+  useEffect(() => {
+    const isTargetAdmin = user?.email?.toLowerCase() === 'sahilrawat399@gmail.com';
+    if (!isTargetAdmin) return;
+
+    const q = query(collection(db, 'bookings'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, snapshot => {
+      setBookings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, error => {
+      handleFirestoreError(error, OperationType.GET, 'bookings');
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  // Booking Actions
+  const updateBookingStatus = async (bookingId: string, newStatus: string) => {
+    try {
+      await updateDoc(doc(db, 'bookings', bookingId), {
+        status: newStatus
+      });
+    } catch(err) {
+      handleFirestoreError(err, OperationType.UPDATE, `bookings/${bookingId}`);
+    }
+  };
+
+  const handleDeleteBooking = async (bookingId: string) => {
+    if (!window.confirm(`Are you absolutely sure you want to delete Booking #${bookingId}?`)) {
+      return;
+    }
+    try {
+      await deleteDoc(doc(db, 'bookings', bookingId));
+    } catch(err) {
+      handleFirestoreError(err, OperationType.DELETE, `bookings/${bookingId}`);
+    }
+  };
 
   const handleLogout = async () => {
+    trackCustomEvent('Sign Out');
     await auth.signOut();
     navigate('/login');
+  };
+
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen bg-[#FAF9F6] flex flex-col items-center justify-center gap-4">
+        <div className="w-10 h-10 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin"></div>
+        <p className="font-serif text-sm tracking-wider text-charcoal">Authenticating Executive parameters...</p>
+      </div>
+    );
   }
 
-  return (
-    <main className="bg-rich-black min-h-screen pt-32 pb-20 px-6 lg:px-12">
-      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8">
-        {/* SIDEBAR */}
-        <div className="w-full lg:w-64 shrink-0">
-          <div className="bg-[#0A0A0A] border border-white/10 rounded-3xl p-6 sticky top-32">
-            <h2 className="font-serif text-2xl font-bold text-white mb-6">Admin Panel</h2>
-            
-            <nav className="space-y-2 mb-8">
-               <button onClick={() => setActiveTab('leads')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium ${activeTab === 'leads' ? 'bg-gold/10 text-gold border border-gold/30' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
-                 <UserPlus className="w-5 h-5" /> Leads
-               </button>
-               <button onClick={() => setActiveTab('projects')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium ${activeTab === 'projects' ? 'bg-gold/10 text-gold border border-gold/30' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
-                 <FolderKanban className="w-5 h-5" /> Projects
-               </button>
-               <button onClick={() => setActiveTab('meetings')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium ${activeTab === 'meetings' ? 'bg-gold/10 text-gold border border-gold/30' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
-                 <Calendar className="w-5 h-5" /> Meetings
-               </button>
-               <button onClick={() => setActiveTab('clients')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium ${activeTab === 'clients' ? 'bg-gold/10 text-gold border border-gold/30' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
-                 <Users className="w-5 h-5" /> Clients
-               </button>
-            </nav>
+  // Left side navigational groupings layout
+  const navigationItems = [
+    {
+      groupName: 'CORE COMMAND',
+      items: [
+        { id: 'overview', name: 'Overview', icon: LayoutDashboard },
+        { id: 'live-analytics', name: 'Live Traffic', icon: Activity },
+      ]
+    },
+    {
+      groupName: 'REVENUE & CLIENTS',
+      items: [
+        { id: 'leads', name: 'Leads & CRM', icon: Users },
+        { id: 'marketing-finance', name: 'ROI & Finance', icon: Landmark },
+      ]
+    },
+    {
+      groupName: 'DELIVERY SYSTEMS',
+      items: [
+        { id: 'projects', name: 'Projects Desk', icon: Briefcase },
+        { id: 'meetings', name: 'Meetings Hub', icon: Calendar, badge: bookings.filter(b => b.status === 'Pending').length },
+        { id: 'tasks', name: 'Operational Board', icon: CheckCircle2 },
+      ]
+    },
+    {
+      groupName: 'CONTENT & ENGINE',
+      items: [
+        { id: 'content-automation', name: 'Media Planner', icon: Sparkles },
+        { id: 'settings-reports', name: 'System Settings', icon: Settings },
+      ]
+    }
+  ];
 
-            <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium text-red-500 hover:bg-red-500/10">
-               <LogOut className="w-5 h-5" /> Sign Out
-            </button>
+  return (
+    <main 
+      className="min-h-screen text-left transition-colors duration-300 relative flex"
+      style={{ 
+        backgroundColor: isDarkMode ? '#050505' : '#FAF9F6',
+        color: isDarkMode ? '#FFFFFF' : '#0A0A0A'
+      }}
+    >
+      {/* 1. LEFT SIDEBAR */}
+      <aside 
+        className="w-76 shrink-0 border-r flex flex-col justify-between p-6 select-none bg-white z-20 hidden xl:flex lg:sticky lg:top-0 h-screen"
+        style={{ 
+          backgroundColor: isDarkMode ? '#0A0A0B' : '#FFFFFF',
+          borderColor: isDarkMode ? '#1E1E20' : '#EAEAEA'
+        }}
+      >
+        <div className="space-y-8">
+          {/* Brand Crown */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gold/10 border border-gold/40 rounded-xl flex items-center justify-center shrink-0">
+              <Crown className="w-5 h-5 text-gold" style={{ filter: 'drop-shadow(0 2px 4px rgba(212,175,55,0.3))' }} />
+            </div>
+            <div>
+              <span className="font-serif font-black text-lg tracking-wide uppercase leading-none block">
+                Leopard Luxe
+              </span>
+              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest block mt-0.5">
+                Vanguard Portal
+              </span>
+            </div>
+          </div>
+
+          {/* Navigation Categories */}
+          <div className="space-y-6">
+            {navigationItems.map(group => (
+              <div key={group.groupName} className="space-y-2">
+                <span className="text-[10px] font-bold text-gray-500 font-mono tracking-widest block">
+                  {group.groupName}
+                </span>
+                <div className="space-y-1">
+                  {group.items.map(nav => {
+                    const Icon = nav.icon;
+                    const isActive = activeTab === nav.id;
+                    return (
+                      <button
+                        key={nav.id}
+                        onClick={() => setActiveTab(nav.id as any)}
+                        className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all relative overflow-hidden group cursor-pointer"
+                        style={{
+                          backgroundColor: isActive ? 'rgba(212,175,55,0.08)' : 'transparent',
+                          color: isActive ? '#D4AF37' : (isDarkMode ? '#A1A1AA' : '#4b5563')
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Icon className={`w-4 h-4 transition-colors ${isActive ? 'text-gold' : 'text-gray-400 group-hover:text-gold'}`} />
+                          <span className="font-medium">{nav.name}</span>
+                        </div>
+                        {nav.badge !== undefined && nav.badge > 0 && (
+                          <span className="bg-gold text-black font-extrabold text-[9px] px-1.5 py-0.5 rounded-full">
+                            {nav.badge}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* CONTENT */}
-        <div className="flex-1">
-           {activeTab === 'leads' && (
-             <div>
-               <h2 className="font-serif text-3xl font-bold text-white mb-6 border-b border-white/10 pb-4">Manage Leads</h2>
-               <AdminLeads />
-             </div>
-           )}
+        {/* Bottom Profile / Exit */}
+        <div className="border-t pt-4" style={{ borderColor: isDarkMode ? '#222222' : '#F1F1F1' }}>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-8 rounded-full bg-gold/10 border border-gold/40 text-gold flex items-center justify-center font-bold font-serif text-sm">
+              S
+            </div>
+            <div className="min-w-0">
+              <span className="font-bold text-xs truncate block" style={{ color: isDarkMode ? '#FFFFFF' : '#0A0A0A' }}>Sahil Rawat</span>
+              <span className="text-[10px] text-gray-500 truncate block">sahilrawat399@gmail.com</span>
+            </div>
+          </div>
+          <button 
+            onClick={handleLogout}
+            className="w-full flex items-center gap-2 px-3 py-2 border rounded-xl text-xs text-red-500 font-bold transition-colors hover:bg-red-500/10 cursor-pointer"
+            style={{ borderColor: isDarkMode ? 'rgba(239,68,68,0.1)' : '#EAEAEA' }}
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Sign Out Session</span>
+          </button>
+        </div>
+      </aside>
 
-           {activeTab === 'projects' && (
-             <div>
-               <h2 className="font-serif text-3xl font-bold text-white mb-6 border-b border-white/10 pb-4">Manage Projects</h2>
-               <AdminProjects users={users} />
-             </div>
-           )}
+      {/* 2. MAIN FRAME CONTENT CONTAINER */}
+      <div className="flex-1 flex flex-col min-w-0">
+        
+        {/* HEADER RAIL - BREADCRUMB, THEME SWITCHER */}
+        <header 
+          className="h-16 border-b flex items-center justify-between px-6 lg:px-8 select-none z-10 sticky top-0 bg-white/85 backdrop-blur-md"
+          style={{ 
+            backgroundColor: isDarkMode ? 'rgba(5,5,5,0.85)' : 'rgba(255,255,255,0.85)',
+            borderColor: isDarkMode ? '#1E1E20' : '#EAEAEA'
+          }}
+        >
+          {/* Breadcrumb path */}
+          <div className="flex items-center gap-2 text-xs font-mono font-bold tracking-widest uppercase">
+            <span className="text-gray-500">ADMIN</span>
+            <span className="text-gold">/</span>
+            <span style={{ color: isDarkMode ? '#EBEBEB' : '#0A0A0A' }}>
+              {activeTab}
+            </span>
+          </div>
 
-           {activeTab === 'meetings' && (
-             <div>
-               <h2 className="font-serif text-3xl font-bold text-white mb-6 border-b border-white/10 pb-4">Manage Meetings</h2>
-               <AdminMeetings users={users} />
-             </div>
-           )}
+          {/* Quick Actions */}
+          <div className="flex items-center gap-4">
+            {/* Direct Theme Toggle button */}
+            <button 
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className="p-2 border rounded-xl hover:bg-gold/5 transition-all text-gold cursor-pointer"
+              style={{ borderColor: isDarkMode ? '#222222' : '#EAEAEA' }}
+              title={isDarkMode ? 'Convert to Luxury Light Mode' : 'Convert to Obsidian Dark Mode'}
+            >
+              {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
 
-           {activeTab === 'clients' && (
-             <div>
-               <h2 className="font-serif text-3xl font-bold text-white mb-6 border-b border-white/10 pb-4">All Clients</h2>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 {users.filter(u => u.role === 'client').map(user => (
-                   <div key={user.id} className="bg-[#0A0A0A] border border-white/10 rounded-2xl p-6">
-                     <p className="font-bold text-white text-lg">{user.fullName}</p>
-                     <p className="text-gray-400 text-sm mb-2">{user.businessName}</p>
-                     <p className="text-xs text-gray-500">{user.email}</p>
-                     <p className="text-xs text-gray-500">{user.phoneNumber || 'No phone'}</p>
-                   </div>
-                 ))}
-               </div>
-             </div>
-           )}
+            {/* Profile badge */}
+            <div className={`p-1 pl-1 pr-3 rounded-full border items-center gap-2 text-xs font-medium hidden sm:flex`} style={{ borderColor: isDarkMode ? '#222222' : '#EAEAEA' }}>
+              <div className="w-6 h-6 rounded-full bg-gold/15 text-gold border border-gold/30 flex items-center justify-center font-bold font-serif">
+                S
+              </div>
+              <span className="text-[11px] text-gray-500">sahilrawat399@gmail.com</span>
+            </div>
+          </div>
+        </header>
+
+        {/* CONTAINER CANVAS FOR PANELS */}
+        <div className="flex-1 p-6 lg:p-8 overflow-y-auto max-w-7xl w-full mx-auto pb-24">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.25 }}
+            >
+              
+              {/* RENDER ACTIVE SCREEN COMPONENT */}
+              {activeTab === 'overview' && (
+                <OverviewTab isDarkMode={isDarkMode} users={users} />
+              )}
+
+              {activeTab === 'live-analytics' && (
+                <LiveAnalyticsTab isDarkMode={isDarkMode} />
+              )}
+
+              {activeTab === 'leads' && (
+                <LeadsAndFormsTab isDarkMode={isDarkMode} />
+              )}
+
+              {activeTab === 'projects' && (
+                <ClientsAndProjectsTab isDarkMode={isDarkMode} users={users} />
+              )}
+
+              {activeTab === 'tasks' && (
+                <TasksAndTeamTab isDarkMode={isDarkMode} />
+              )}
+
+              {activeTab === 'marketing-finance' && (
+                <MarketingAndFinanceTab isDarkMode={isDarkMode} />
+              )}
+
+              {activeTab === 'content-automation' && (
+                <ContentAndAutomationTab isDarkMode={isDarkMode} />
+              )}
+
+              {activeTab === 'settings-reports' && (
+                <SettingsAndReportsTab isDarkMode={isDarkMode} />
+              )}
+
+              {/* RENDER MEETINGS REQUESTS DIRECTLY INSIDE PORTAL FRAME */}
+              {activeTab === 'meetings' && (
+                <div className="space-y-6 text-left animate-fade-in">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <h2 className="font-serif text-3xl font-bold tracking-tight" style={{ color: isDarkMode ? '#FFFFFF' : '#0A0A0A' }}>
+                        Live Meeting Consultations
+                      </h2>
+                      <p className="text-sm mt-1" style={{ color: isDarkMode ? '#999999' : '#666666' }}>
+                        Approved status triggers onSnapshot sync, instantly modifying the active client dashboard indicators.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Realtime stats row */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="p-5 rounded-2xl border" style={{ backgroundColor: isDarkMode ? '#0F0F0F' : '#FFFFFF', borderColor: isDarkMode ? '#222222' : '#EAEAEA' }}>
+                      <span className="text-xs text-gray-400 font-medium uppercase tracking-wider block mb-1">Total Bookings</span>
+                      <span className="text-2xl font-serif font-bold text-gold">{bookings.length}</span>
+                    </div>
+                    <div className="p-5 rounded-2xl border" style={{ backgroundColor: isDarkMode ? '#0F0F0F' : '#FFFFFF', borderColor: isDarkMode ? '#222222' : '#EAEAEA' }}>
+                      <span className="text-xs text-yellow-500 font-medium uppercase tracking-wider block mb-1">Pending</span>
+                      <span className="text-2xl font-serif font-bold text-yellow-500">{bookings.filter(b => b.status === 'Pending').length}</span>
+                    </div>
+                    <div className="p-5 rounded-2xl border" style={{ backgroundColor: isDarkMode ? '#0F0F0F' : '#FFFFFF', borderColor: isDarkMode ? '#222222' : '#EAEAEA' }}>
+                      <span className="text-xs text-green-500 font-medium uppercase tracking-wider block mb-1">Approved</span>
+                      <span className="text-2xl font-serif font-bold text-green-400">{bookings.filter(b => b.status === 'Approved').length}</span>
+                    </div>
+                    <div className="p-5 rounded-2xl border" style={{ backgroundColor: isDarkMode ? '#0F0F0F' : '#FFFFFF', borderColor: isDarkMode ? '#222222' : '#EAEAEA' }}>
+                      <span className="text-xs text-blue-500 font-medium uppercase tracking-wider block mb-1">Completed</span>
+                      <span className="text-2xl font-serif font-bold text-blue-400">{bookings.filter(b => b.status === 'Completed').length}</span>
+                    </div>
+                  </div>
+
+                  {/* Booking requests table */}
+                  <div 
+                    className="p-6 rounded-3xl border"
+                    style={{ 
+                      backgroundColor: isDarkMode ? '#0F0F0F' : '#FFFFFF', 
+                      borderColor: isDarkMode ? '#222222' : '#EAEAEA' 
+                    }}
+                  >
+                    {bookings.length === 0 ? (
+                      <p className="text-gray-500 italic text-center py-12">No scheduled consultation bookings present in Firestore.</p>
+                    ) : (
+                      <div className="overflow-x-auto custom-scrollbar">
+                        <table className="w-full text-left border-collapse min-w-[900px] text-xs">
+                          <thead>
+                            <tr className="border-b border-light-gray/10 text-gray-500 font-bold uppercase select-none">
+                              <th className="py-4 font-mono">Code ID</th>
+                              <th className="py-4">Affiliate Client</th>
+                              <th className="py-4">Date & Hour</th>
+                              <th className="py-4">Selected Service</th>
+                              <th className="py-4">Status Pin</th>
+                              <th className="py-4">Created</th>
+                              <th className="py-4 text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-light-gray/5">
+                            {bookings.map((booking) => (
+                              <tr key={booking.id} className="hover:bg-white/5 transition-all text-xs font-medium">
+                                <td className="py-3">
+                                  <span className="font-mono font-bold text-gold bg-gold/10 px-2 py-0.5 rounded border border-gold/10">
+                                    {booking.bookingId}
+                                  </span>
+                                </td>
+                                <td className="py-3">
+                                  <span className="font-bold text-white block" style={{ color: isDarkMode ? '#FFFFFF' : '#0A0A0A' }}>{booking.userName || "VIP Prospect"}</span>
+                                  <span className="text-[10px] text-gray-500">{booking.userEmail}</span>
+                                </td>
+                                <td className="py-3">
+                                  <span className="text-white font-bold block" style={{ color: isDarkMode ? '#FFFFFF' : '#0A0A0A' }}>{booking.bookingDate}</span>
+                                  <span className="text-[10px] font-mono text-gray-500">{booking.bookingTime}</span>
+                                </td>
+                                <td className="py-3 text-gold font-bold">{booking.serviceType}</td>
+                                <td className="py-3">
+                                  <span className={`text-[9px] tracking-wider uppercase font-extrabold px-2 py-0.5 rounded border ${
+                                    booking.status === 'Approved' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                                    booking.status === 'Completed' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                                    booking.status === 'Rejected' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                                    'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
+                                  }`}>
+                                    {booking.status}
+                                  </span>
+                                </td>
+                                <td className="py-3 text-gray-500 font-mono">
+                                  {booking.createdAt ? format(booking.createdAt.toDate(), 'PP p') : 'Just now'}
+                                </td>
+                                <td className="py-3 text-right">
+                                  <div className="flex items-center justify-end gap-1.5">
+                                    {booking.status !== 'Approved' && (
+                                      <button
+                                        onClick={() => updateBookingStatus(booking.id, 'Approved')}
+                                        className="px-2 py-1 border border-green-500/30 text-green-400 hover:bg-green-500 hover:text-black rounded transition-all font-bold cursor-pointer font-sans"
+                                      >
+                                        Approve
+                                      </button>
+                                    )}
+                                    {booking.status !== 'Completed' && (
+                                      <button
+                                        onClick={() => updateBookingStatus(booking.id, 'Completed')}
+                                        className="px-2 py-1 border border-blue-500/30 text-blue-400 hover:bg-blue-500 hover:text-white rounded transition-all font-bold cursor-pointer font-sans"
+                                      >
+                                        Complete
+                                      </button>
+                                    )}
+                                    {booking.status !== 'Rejected' && (
+                                      <button
+                                        onClick={() => updateBookingStatus(booking.id, 'Rejected')}
+                                        className="px-2 py-1 border border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white rounded transition-all font-bold cursor-pointer font-sans"
+                                      >
+                                        Reject
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={() => handleDeleteBooking(booking.id)}
+                                      className="p-1 px-1.5 border border-white/10 hover:border-red-500/30 text-gray-500 hover:text-red-500 rounded transition-all cursor-pointer"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
     </main>
   );
 }
+export default AdminDashboard;

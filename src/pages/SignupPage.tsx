@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '../lib/firebase';
+import { auth } from '../lib/firebase';
 import { motion } from 'motion/react';
 import { ArrowRight, Mail, Lock, User, Building } from 'lucide-react';
+import { trackCustomEvent } from '../lib/analytics';
 
 export function SignupPage() {
   const [fullName, setFullName] = useState('');
@@ -19,24 +19,15 @@ export function SignupPage() {
     e.preventDefault();
     setError('');
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      
-      const userDoc = {
-        fullName,
-        businessName,
-        email,
-        phoneNumber: phone,
-        role: 'client',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      };
-      
-      // The rules allow creation of own profile
-      await setDoc(doc(db, 'users', user.uid), userDoc);
+      await createUserWithEmailAndPassword(auth, email, password);
+      trackCustomEvent('User Sign Up');
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Signup failed');
+      if (err.code === 'auth/email-already-in-use') {
+        setError('User already exists. Please sign in.');
+      } else {
+        setError(err.message || 'Signup failed');
+      }
     }
   };
 
@@ -48,8 +39,8 @@ export function SignupPage() {
         className="w-full max-w-lg bg-[#0A0A0A] border border-white/10 p-8 rounded-3xl"
       >
         <div className="text-center mb-8">
-          <h1 className="font-serif text-3xl font-bold text-white mb-2">Request Access</h1>
-          <p className="text-gray-400">Create an account to access the client portal</p>
+          <h1 className="font-serif text-3xl font-bold text-white mb-2">Sign Up</h1>
+          <p className="text-gray-400">Create an account to access your dashboard</p>
         </div>
 
         {error && (

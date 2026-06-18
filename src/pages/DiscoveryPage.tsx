@@ -4,6 +4,7 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { motion } from 'motion/react';
 import { ArrowRight, Building, Mail, Phone, User, MapPin } from 'lucide-react';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
+import { trackCustomEvent } from '../lib/analytics';
 
 const INDUSTRIES = [
   "E-commerce", "Real Estate", "Interior Design", "Dental Clinic", 
@@ -73,6 +74,17 @@ export function DiscoveryPage() {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
+      
+      // Track custom events requested
+      trackCustomEvent('Meeting Request submissions', {
+        industry: formData.industry,
+        budget: formData.marketingBudget,
+        preferredDate: formData.preferredDate
+      });
+      trackCustomEvent('Contact Form submissions', {
+        businessName: formData.businessName
+      });
+
       setSubmitted(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {

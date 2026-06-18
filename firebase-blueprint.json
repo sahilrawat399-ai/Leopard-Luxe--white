@@ -53,6 +53,24 @@
       },
       "required": ["clientId", "date", "time", "serviceType", "status", "createdAt", "updatedAt"]
     },
+    "Booking": {
+      "title": "Booking",
+      "description": "A scheduled meeting booking",
+      "type": "object",
+      "properties": {
+        "bookingId": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "serviceType": { "type": "string" },
+        "bookingDate": { "type": "string" },
+        "bookingTime": { "type": "string" },
+        "notes": { "type": "string" },
+        "status": { "type": "string", "enum": ["Pending", "Approved", "Completed", "Rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["bookingId", "userId", "userName", "userEmail", "serviceType", "bookingDate", "bookingTime", "status", "createdAt"]
+    },
     "ProjectUpdate": {
       "title": "Project Update",
       "description": "Real-time updates posted by admin",
@@ -118,6 +136,10 @@
     "meetings/{meetingId}": {
       "schema": { "$ref": "#/entities/Meeting" },
       "description": "Scheduled meetings."
+    },
+    "bookings/{bookingId}": {
+      "schema": { "$ref": "#/entities/Booking" },
+      "description": "User meeting bookings."
     },
     "projectUpdates/{updateId}": {
       "schema": { "$ref": "#/entities/ProjectUpdate" },

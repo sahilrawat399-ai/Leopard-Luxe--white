@@ -4,6 +4,7 @@ import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 
 import { auth } from '../lib/firebase';
 import { motion } from 'motion/react';
 import { ArrowRight, Mail, Lock } from 'lucide-react';
+import { trackCustomEvent } from '../lib/analytics';
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
@@ -16,9 +17,10 @@ export function LoginPage() {
     setError('');
     try {
       await signInWithEmailAndPassword(auth, email, password);
+      trackCustomEvent('User Sign In');
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Login failed');
+      setError('Email or password is incorrect.');
     }
   };
 
@@ -26,6 +28,7 @@ export function LoginPage() {
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
+      trackCustomEvent('Google Login');
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Google Login failed');
@@ -40,8 +43,8 @@ export function LoginPage() {
         className="w-full max-w-md bg-[#0A0A0A] border border-white/10 p-8 rounded-3xl"
       >
         <div className="text-center mb-8">
-          <h1 className="font-serif text-3xl font-bold text-white mb-2">Client Portal</h1>
-          <p className="text-gray-400">Sign in to manage your projects</p>
+          <h1 className="font-serif text-3xl font-bold text-white mb-2">Sign In / Sign Up</h1>
+          <p className="text-gray-400">Sign in to access your dashboard and manage projects</p>
         </div>
 
         {error && (
@@ -116,7 +119,7 @@ export function LoginPage() {
         </div>
 
         <p className="mt-8 text-center text-sm text-gray-400">
-          Don't have an account? <Link to="/signup" className="text-gold hover:text-white transition-colors">Request Access</Link>
+          Don't have an account? <Link to="/signup" className="text-gold hover:text-white transition-colors">Sign Up</Link>
         </p>
       </motion.div>
     </main>

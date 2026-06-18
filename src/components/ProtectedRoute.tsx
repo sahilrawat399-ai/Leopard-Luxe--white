@@ -17,8 +17,10 @@ export function ProtectedRoute({ children, adminOnly = false }: { children: Reac
     return <Navigate to="/login" />;
   }
 
-  if (adminOnly && dbUser?.role !== 'admin') {
-    return <Navigate to="/dashboard" />;
+  const isTargetAdmin = user.email?.toLowerCase() === 'sahilrawat399@gmail.com';
+
+  if (adminOnly && !isTargetAdmin) {
+    return <Navigate to="/portal" />;
   }
 
   return <>{children}</>;

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { useAuthStore } from '../stores/authStore';
 
@@ -8,40 +8,92 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setUser, setDbUser, setLoading } = useAuthStore();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    let unsubscribeSnap: (() => void) | null = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      if (unsubscribeSnap) {
+        unsubscribeSnap();
+        unsubscribeSnap = null;
+      }
+
       setUser(user);
+
       if (user) {
-        // Fetch or create user document
-        const userRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userRef);
+        const userDocRef = doc(db, 'users', user.uid);
+        const emailLower = (user.email || '').toLowerCase();
+        const isTargetAdmin = emailLower === 'sahilrawat399@gmail.com';
         
-        if (userDoc.exists()) {
-          setDbUser(userDoc.data());
-        } else {
-            // New user signed up mostly via Google if not going through custom signup.
-            // But we will handle custom signup where we create the doc before/after.
-            // Lets just do generic if missing
-            const newUser = {
-                fullName: user.displayName || 'New User',
-                email: user.email || 'user@example.com',
-                role: 'client',
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp()
-            };
-            try {
-                await setDoc(userRef, newUser);
-                setDbUser(newUser);
-            } catch(e) {
-                console.error("Failed to create user doc", e);
+        unsubscribeSnap = onSnapshot(userDocRef, async (snapshot) => {
+          if (snapshot.exists()) {
+            const data = snapshot.data();
+            if (isTargetAdmin && data.role !== 'admin') {
+              try {
+                await setDoc(userDocRef, { ...data, role: 'admin' }, { merge: true });
+              } catch (e) {
+                console.error("Failed to update admin role in firestore:", e);
+              }
+              setDbUser({ id: snapshot.id, ...data, role: 'admin' });
+            } else if (!isTargetAdmin && data.role === 'admin') {
+              // Revoke role admin for non-allowed emails (security hardening)
+              setDbUser({ id: snapshot.id, ...data, role: 'client' });
+            } else {
+              setDbUser({ id: snapshot.id, ...data });
             }
-        }
+            setLoading(false);
+          } else {
+            // Profile does not exist, let's create it!
+            const defaultRole = isTargetAdmin ? 'admin' : 'client';
+
+            const newProfile = {
+              fullName: user.displayName || user.email?.split('@')[0] || 'Client Member',
+              email: user.email || '',
+              role: defaultRole,
+              businessName: 'Luxe Member',
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp()
+            };
+
+            try {
+              await setDoc(userDocRef, newProfile);
+              // The onSnapshot listener will trigger again with the new doc.
+            } catch (err: any) {
+              console.error('Error auto-creating users/{uid} document on login:', err);
+              // Fallback representation if firestore write fails temporarily
+              setDbUser({
+                id: user.uid,
+                ...newProfile,
+                createdAt: new Date(),
+                updatedAt: new Date()
+              });
+              setLoading(false);
+            }
+          }
+        }, (error) => {
+          console.error("Error listening to users/{uid} document:", error);
+          const defaultRole = isTargetAdmin ? 'admin' : 'client';
+          setDbUser({
+            id: user.uid,
+            fullName: user.displayName || user.email?.split('@')[0] || 'Client Member',
+            email: user.email || '',
+            role: defaultRole,
+            businessName: 'Luxe Member',
+            createdAt: new Date(),
+            updatedAt: new Date()
+          });
+          setLoading(false);
+        });
       } else {
         setDbUser(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeSnap) {
+        unsubscribeSnap();
+      }
+    };
   }, [setUser, setDbUser, setLoading]);
 
   return <>{children}</>;

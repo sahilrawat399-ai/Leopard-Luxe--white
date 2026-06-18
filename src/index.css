@@ -80,3 +80,21 @@ body {
   border: 1px solid rgba(212, 175, 55, 0.2);
 }
 
+/* Hide native browser date/time picker indicators so our gold icons remain premium */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  position: absolute;
+  right: 16px;
+  z-index: 2;
+}
+
+/* Ensure the native date picker popup adapts beautifully on iOS, Safari, and Chrome */
+input[type="date"],
+input[type="time"] {
+  position: relative;
+}
+
