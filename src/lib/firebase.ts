@@ -2,19 +2,10 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
-
-const firebaseConfig = {
-  apiKey: "AIzaSyBomgHyZyLtHVShU8fD28Vkfj0BcmF_J9A",
-  authDomain: "leopard-luxe-data-base.firebaseapp.com",
-  projectId: "leopard-luxe-data-base",
-  storageBucket: "leopard-luxe-data-base.firebasestorage.app",
-  messagingSenderId: "550283557139",
-  appId: "1:550283557139:web:8c36aa335d83ff488242e6",
-  measurementId: "G-L211FBE6RT"
-};
+import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 
 // Enable Firestore multi-tab client-side offline persistence
 try {
