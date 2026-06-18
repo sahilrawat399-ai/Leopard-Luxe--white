@@ -108,7 +108,21 @@ export function AdminDashboard() {
 
   const handleLogout = async () => {
     trackCustomEvent('Sign Out');
-    await auth.signOut();
+    localStorage.removeItem('luxe_auth_bypass');
+    localStorage.removeItem('luxe_cached_user');
+    localStorage.removeItem('luxe_cached_db_user');
+    
+    // Reset Zustand auth state natively for instant navigation reaction
+    const { setUser, setDbUser, setLoading } = useAuthStore.getState();
+    setUser(null);
+    setDbUser(null);
+    setLoading(false);
+
+    try {
+      await auth.signOut();
+    } catch (err) {
+      console.warn("Sign out err:", err);
+    }
     navigate('/login');
   };
 

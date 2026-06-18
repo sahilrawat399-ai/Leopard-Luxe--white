@@ -16,6 +16,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         unsubscribeSnap = null;
       }
 
+      if (!user) {
+        const hasBypass = localStorage.getItem('luxe_auth_bypass') === 'true';
+        if (hasBypass) {
+          const cachedUser = localStorage.getItem('luxe_cached_user');
+          const cachedDbUser = localStorage.getItem('luxe_cached_db_user');
+          if (cachedUser && cachedDbUser) {
+            setUser(JSON.parse(cachedUser));
+            setDbUser(JSON.parse(cachedDbUser));
+            setLoading(false);
+            return;
+          }
+        }
+      }
+
       setUser(user);
 
       if (user) {
