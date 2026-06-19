@@ -80,11 +80,49 @@ export function AdminDashboard() {
     const isTargetAdmin = user?.email?.toLowerCase() === 'sahilrawat399@gmail.com';
     if (!isTargetAdmin) return;
 
+    // Load initial list from localStorage to avoid delay
+    try {
+      const localList = JSON.parse(localStorage.getItem('luxe_bookings') || '[]');
+      if (localList.length > 0) {
+        setBookings(localList.map((b: any) => ({ id: b.bookingId || b.id, ...b })));
+      }
+    } catch (e) {
+      console.warn("Could not load initial local bookings:", e);
+    }
+
     const q = query(collection(db, 'bookings'), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, snapshot => {
-      setBookings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const firestoreList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
+      
+      setBookings(() => {
+        const merged = [...firestoreList];
+        try {
+          const localList = JSON.parse(localStorage.getItem('luxe_bookings') || '[]');
+          localList.forEach((localB: any) => {
+            const matchId = localB.bookingId || localB.id;
+            if (matchId && !merged.some((b: any) => (b.bookingId === matchId || b.id === matchId))) {
+              merged.push({
+                id: matchId,
+                ...localB
+              });
+            }
+          });
+        } catch (e) {
+          console.warn("Could not merge local bookings in snapshot:", e);
+        }
+        return merged;
+      });
     }, error => {
       handleFirestoreError(error, OperationType.GET, 'bookings');
+      // If Firestore fails due to sandbox, keep the local storage list
+      try {
+        const localList = JSON.parse(localStorage.getItem('luxe_bookings') || '[]');
+        if (localList.length > 0) {
+          setBookings(localList.map((b: any) => ({ id: b.bookingId || b.id, ...b })));
+        }
+      } catch (e) {
+        console.warn("Could not restore local bookings after Firestore error:", e);
+      }
     });
     return () => unsubscribe();
   }, [user]);
@@ -496,11 +534,15 @@ Leopard Luxe Team`;
                   >
                     {(() => {
                       const filteredBookings = bookings.filter(b => {
+                        const name = b.fullName || b.userName || '';
+                        const email = b.email || b.userEmail || '';
+                        const bId = b.bookingId || b.id || '';
+                        const companyName = b.companyName || '';
                         const matchesSearch = 
-                          (b.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (b.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (b.bookingId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (b.companyName || '').toLowerCase().includes(searchTerm.toLowerCase());
+                          name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          bId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          companyName.toLowerCase().includes(searchTerm.toLowerCase());
                         
                         const matchesStatus = statusFilter === 'All' || [b.status, b.statusPin].includes(statusFilter);
                         return matchesSearch && matchesStatus;
@@ -535,16 +577,16 @@ Leopard Luxe Team`;
                                   {/* ID */}
                                   <td className="py-4">
                                     <span className="font-mono font-bold text-gold bg-gold/10 px-2 py-0.5 rounded border border-gold/10">
-                                      {booking.bookingId || "LL-UNKNOWN"}
+                                      {booking.bookingId || booking.id || "LL-UNKNOWN"}
                                     </span>
                                   </td>
                                   
                                   {/* Name / Email */}
                                   <td className="py-4">
                                     <span className="font-bold block" style={{ color: isDarkMode ? '#FFFFFF' : '#0A0A0A' }}>
-                                      {booking.fullName || "VIP Customer"}
+                                      {booking.fullName || booking.userName || "VIP Customer"}
                                     </span>
-                                    <span className="text-[10px] text-gray-500">{booking.email}</span>
+                                    <span className="text-[10px] text-gray-500">{booking.email || booking.userEmail}</span>
                                   </td>
 
                                   {/* Phone */}
@@ -554,12 +596,12 @@ Leopard Luxe Team`;
 
                                   {/* Meeting Date */}
                                   <td className="py-4 text-white font-sans font-semibold">
-                                    {booking.selectedDate || "N/A"}
+                                    {booking.selectedDate || booking.bookingDate || "N/A"}
                                   </td>
 
                                   {/* Meeting Time */}
                                   <td className="py-4 text-white font-mono font-semibold">
-                                    {booking.selectedTime || "N/A"}
+                                    {booking.selectedTime || booking.bookingTime || "N/A"}
                                   </td>
 
                                   {/* Company */}
@@ -568,8 +610,8 @@ Leopard Luxe Team`;
                                   </td>
 
                                   {/* Service */}
-                                  <td className="py-4 text-gold font-semibold max-w-[200px] truncate" title={booking.serviceInterested}>
-                                    {booking.serviceInterested || "Premium Consult"}
+                                  <td className="py-4 text-gold font-semibold max-w-[200px] truncate" title={booking.serviceInterested || booking.serviceType}>
+                                    {booking.serviceInterested || booking.serviceType || "Premium Consult"}
                                   </td>
 
                                   {/* Budget */}
@@ -579,7 +621,7 @@ Leopard Luxe Team`;
 
                                   {/* Date Created */}
                                   <td className="py-4 text-gray-500 font-mono">
-                                    {booking.createdAt ? format(booking.createdAt.toDate ? booking.createdAt.toDate() : new Date(booking.createdAt), 'PP p') : 'Just now'}
+                                    {booking.createdAt ? (booking.createdAt.toDate ? format(booking.createdAt.toDate(), 'PP p') : (typeof booking.createdAt === 'string' || typeof booking.createdAt === 'number' || booking.createdAt instanceof Date ? format(new Date(booking.createdAt), 'PP p') : 'Just now')) : 'Just now'}
                                   </td>
 
                                   {/* Assigned TO */}

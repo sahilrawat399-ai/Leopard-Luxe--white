@@ -485,6 +485,31 @@ export function ClientPortal() {
               createdAt: serverTimestamp()
             });
 
+            // Save client backup to localStorage for ultra-reliable tracking
+            try {
+              const localPayload = {
+                bookingId,
+                userId: user?.uid || 'Unknown',
+                fullName: dbUser?.fullName || user?.displayName || "VIP Partner",
+                email: user?.email || "",
+                phone: dbUser?.phone || "",
+                companyName: dbUser?.companyName || "N/A",
+                serviceInterested: serviceType,
+                budget: "N/A",
+                selectedDate: bDate,
+                selectedTime: bTime,
+                status: 'Pending',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              };
+              const existingLocal = JSON.parse(localStorage.getItem('luxe_bookings') || '[]');
+              const filteredLocal = existingLocal.filter((b: any) => b.bookingId !== bookingId);
+              filteredLocal.push(localPayload);
+              localStorage.setItem('luxe_bookings', JSON.stringify(filteredLocal.slice(-10)));
+            } catch (localErr) {
+              console.warn("Could not save backup client booking to localStorage:", localErr);
+            }
+
             console.log("Booking saved successfully");
 
             trackCustomEvent('Meeting Request submissions', {
