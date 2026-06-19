@@ -50,6 +50,8 @@ export function BookingTrackerPage() {
     setSearched(false);
     setBookingData(null);
 
+    let found = false;
+
     try {
       // Fetch specifically by the ID which acts as the document path
       const docRef = doc(db, 'bookings', formattedId);
@@ -62,21 +64,40 @@ export function BookingTrackerPage() {
         if (data.email?.toLowerCase() === formattedEmail) {
           setBookingData(data);
           setSearched(true);
-        } else {
-          // Found matching ID but email is wrong, treat as Not Found to prevent leaking other bookings
-          setErrorMsg("No Booking Found with the provided combination.");
-          setSearched(true);
+          found = true;
         }
-      } else {
-        setErrorMsg("No Booking Found with the provided combination.");
-        setSearched(true);
       }
     } catch (err: any) {
-      console.error("Booking tracking failed", err);
-      setErrorMsg("An error occurred while scanning the records. Please try again.");
-    } finally {
-      setIsSearching(false);
+      console.warn("Firestore scan failed or blocked by iframe permissions, checking local backups...", err);
     }
+
+    // Try localStorage backup if not found in Firestore (useful for sandboxed frames, restricted cookies, or offline simulation)
+    if (!found) {
+      try {
+        const existingLocal = JSON.parse(localStorage.getItem('luxe_bookings') || '[]');
+        const match = existingLocal.find((b: any) => 
+          b.bookingId?.trim().toUpperCase() === formattedId.toUpperCase() &&
+          b.email?.trim().toLowerCase() === formattedEmail
+        );
+
+        if (match) {
+          setBookingData(match);
+          setSearched(true);
+          setErrorMsg(null);
+          found = true;
+          console.log("Successfully retrieved booking from local fallback cache:", match);
+        }
+      } catch (localErr) {
+        console.warn("Failed to check local backup booking:", localErr);
+      }
+    }
+
+    if (!found) {
+      setErrorMsg("No Booking Found with the provided combination.");
+      setSearched(true);
+    }
+
+    setIsSearching(false);
   };
 
   const getStatusColor = (status: string) => {
