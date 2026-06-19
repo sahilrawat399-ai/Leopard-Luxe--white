@@ -129,6 +129,7 @@ export function ClientPortal() {
       time: string;
     } | null>(null);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
+    const [bookingError, setBookingError] = useState<string | null>(null);
 
     // Lazy load scheduler section visibility (Req 12)
     const [schedulerVisible, setSchedulerVisible] = useState(false);
@@ -432,6 +433,7 @@ export function ClientPortal() {
       <form 
         onSubmit={async (e) => {
           e.preventDefault();
+          setBookingError(null);
           trackCustomEvent('Confirm Booking button clicks');
           const form = e.target as HTMLFormElement;
           const serviceType = (form.elements.namedItem('serviceType') as HTMLSelectElement).value;
@@ -451,10 +453,12 @@ export function ClientPortal() {
           }
 
           try {
-            const bookingId = Math.floor(100000 + Math.random() * 900000).toString();
+            const bookingIdNum = Math.floor(100000 + Math.random() * 900000);
+            const bookingId = bookingIdNum.toString();
             const bDate = formatDateDisplay(selectedDate);
             const bTime = formatTimeTo12Hour(selectedTime);
 
+            // 1. Write to general 'bookings' so it populates current customer & admin dashboards
             await setDoc(doc(db, 'bookings', bookingId), {
               bookingId,
               userId: user?.uid || 'Unknown',
@@ -467,6 +471,21 @@ export function ClientPortal() {
               status: 'Pending',
               createdAt: serverTimestamp()
             });
+
+            // 2. Write to explicit 'meetingRequests' collection as requested
+            await setDoc(doc(db, 'meetingRequests', bookingId), {
+              bookingId: bookingIdNum,
+              userEmail: user?.email || "",
+              userName: dbUser?.fullName || user?.displayName || "",
+              selectedDate,
+              selectedTime,
+              serviceType,
+              additionalNotes: notes || "",
+              status: 'Pending',
+              createdAt: serverTimestamp()
+            });
+
+            console.log("Booking saved successfully");
 
             trackCustomEvent('Meeting Request submissions', {
               bookingId,
@@ -481,13 +500,16 @@ export function ClientPortal() {
               time: bTime
             });
 
-            setToastMessage(`Booking Confirmed! Booking ID: ${bookingId}`);
+            setToastMessage(`Your booking is confirmed. Booking ID: ${bookingId}`);
 
             form.reset();
             setSelectedDate('');
             setSelectedTime('');
           } catch (err: any) {
-             handleFirestoreError(err, OperationType.CREATE, 'bookings');
+             console.error("Booking save failed:", err);
+             const exactErrorMsg = err.message || String(err);
+             setBookingError(exactErrorMsg);
+             handleFirestoreError(err, OperationType.CREATE, 'meetingRequests');
           }
         }}
         className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left"
@@ -592,6 +614,12 @@ export function ClientPortal() {
             <label className="block text-xs font-bold tracking-wider text-gray-400 uppercase mb-2">Additional Notes</label>
             <textarea name="notes" rows={3} className="w-full bg-[#050505]/60 border border-white/10 rounded-xl py-3.5 px-4 text-white focus:outline-none focus:border-gold transition-colors resize-none text-sm placeholder-gray-600" placeholder="What would you like to discuss?"></textarea>
           </div>
+
+          {bookingError && (
+            <div id="booking-error-container" className="bg-red-500/10 border border-red-500/30 text-red-500 p-4 rounded-xl text-xs text-left">
+              <span className="font-bold">Error saving booking:</span> {bookingError}
+            </div>
+          )}
 
           <button type="submit" className="w-full px-6 py-4 rounded-xl font-bold tracking-widest text-xs uppercase text-rich-black transition-all duration-300 hover:scale-[1.01] shadow-[0_5px_20px_rgba(212,175,55,0.35)] bg-gradient-to-r from-[#D4AF37] to-[#B8860B] select-none cursor-pointer">
             Confirm Booking
@@ -828,7 +856,7 @@ export function ClientPortal() {
             </div>
 
             <h3 className="font-serif text-3xl font-bold text-white mb-2">Booking Confirmed</h3>
-            <p className="text-gray-400 text-sm mb-6">Your meeting has been successfully scheduled.</p>
+            <p className="text-green-400 text-sm mb-6 font-semibold">Your booking is confirmed. Booking ID: {successModalData.bookingId}</p>
 
             <div className="bg-white/5 border border-white/10 rounded-2xl p-5 mb-8 text-left space-y-3 font-sans">
               <div className="flex justify-between border-b border-white/5 pb-2.5">

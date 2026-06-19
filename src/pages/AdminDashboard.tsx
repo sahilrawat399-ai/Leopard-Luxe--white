@@ -9,9 +9,10 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Users, Calendar, Briefcase, LogOut, FileText, Trash2, 
   LayoutDashboard, Activity, Heart, Contact, Landmark, Sparkles, 
-  Settings, Crown, Sun, Moon, CheckCircle2, AlertOctagon, HelpCircle 
+  Settings, Crown, Sun, Moon, CheckCircle2, AlertOctagon, HelpCircle, Search as SearchIcon
 } from 'lucide-react';
 import { trackCustomEvent } from '../lib/analytics';
+import { sendAutomatedEmail } from '../lib/emailService';
 
 // Modular Tab Component Imports
 import { OverviewTab } from '../components/admin/OverviewTab';
@@ -42,12 +43,16 @@ export function AdminDashboard() {
   const [users, setUsers] = useState<any[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
 
+  // Search and filter states for the booking tracker
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+
   // Enforce rigid Admin email protection
   useEffect(() => {
     if (!loading) {
       const isTargetAdmin = user?.email?.toLowerCase() === 'sahilrawat399@gmail.com';
       if (!isTargetAdmin) {
-        navigate('/portal');
+        navigate('/admin-login');
       }
     }
   }, [user, loading, navigate]);
@@ -87,9 +92,48 @@ export function AdminDashboard() {
   // Booking Actions
   const updateBookingStatus = async (bookingId: string, newStatus: string) => {
     try {
+      const bRecord = bookings.find(b => b.id === bookingId || b.bookingId === bookingId);
+      if (!bRecord) {
+        console.error("Booking record not found locally:", bookingId);
+        return;
+      }
+
       await updateDoc(doc(db, 'bookings', bookingId), {
-        status: newStatus
+        status: newStatus,
+        updatedAt: new Date()
       });
+
+      console.log("Booking saved successfully & status updated to:", newStatus);
+
+      // Trigger automatic status update email notification (step 16)
+      if (bRecord.email) {
+        const emailBody = `Hello ${bRecord.fullName || 'Client'},
+
+Your strategy call booking status (Booking ID: ${bRecord.bookingId || bookingId}) has been updated to: ${newStatus}.
+
+Use your Booking ID and Email Address to track progress anytime on our website.
+
+Regards,
+Leopard Luxe Team`;
+
+        await sendAutomatedEmail(
+          bRecord.email.trim().toLowerCase(),
+          `Leopard Luxe Strategy Call Status Update`,
+          emailBody
+        );
+      }
+    } catch(err) {
+      handleFirestoreError(err, OperationType.UPDATE, `bookings/${bookingId}`);
+    }
+  };
+
+  const updateBookingAdvisor = async (bookingId: string, advisorName: string) => {
+    try {
+      await updateDoc(doc(db, 'bookings', bookingId), {
+        assignedTo: advisorName,
+        updatedAt: new Date()
+      });
+      console.log(`Advisor assigned successfully: ${advisorName}`);
     } catch(err) {
       handleFirestoreError(err, OperationType.UPDATE, `bookings/${bookingId}`);
     }
@@ -123,7 +167,7 @@ export function AdminDashboard() {
     } catch (err) {
       console.warn("Sign out err:", err);
     }
-    navigate('/login');
+    navigate('/admin-login');
   };
 
   if (loading || !user) {
@@ -247,7 +291,7 @@ export function AdminDashboard() {
             </div>
             <div className="min-w-0">
               <span className="font-bold text-xs truncate block" style={{ color: isDarkMode ? '#FFFFFF' : '#0A0A0A' }}>Sahil Rawat</span>
-              <span className="text-[10px] text-gray-500 truncate block">sahilrawat399@gmail.com</span>
+              <span className="text-[10px] text-gold font-bold uppercase tracking-wider truncate block">Super Admin</span>
             </div>
           </div>
           <button 
@@ -293,12 +337,23 @@ export function AdminDashboard() {
               {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
 
+            {/* Logout Button (Top Right of Admin Dashboard) */}
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-3 py-2 border rounded-xl text-xs text-red-500 font-bold hover:bg-red-500/10 transition-colors cursor-pointer animate-pulse"
+              style={{ borderColor: isDarkMode ? 'rgba(239, 68, 68, 0.3)' : '#EAEAEA' }}
+              title="Sign Out Session"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden md:inline">Logout</span>
+            </button>
+
             {/* Profile badge */}
             <div className={`p-1 pl-1 pr-3 rounded-full border items-center gap-2 text-xs font-medium hidden sm:flex`} style={{ borderColor: isDarkMode ? '#222222' : '#EAEAEA' }}>
               <div className="w-6 h-6 rounded-full bg-gold/15 text-gold border border-gold/30 flex items-center justify-center font-bold font-serif">
                 S
               </div>
-              <span className="text-[11px] text-gray-500">sahilrawat399@gmail.com</span>
+              <span className="text-[11px] font-bold text-gold uppercase tracking-wider">Super Admin</span>
             </div>
           </div>
         </header>
@@ -353,31 +408,81 @@ export function AdminDashboard() {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                       <h2 className="font-serif text-3xl font-bold tracking-tight" style={{ color: isDarkMode ? '#FFFFFF' : '#0A0A0A' }}>
-                        Live Meeting Consultations
+                        Leopard Luxe Advanced Lead Management
                       </h2>
                       <p className="text-sm mt-1" style={{ color: isDarkMode ? '#999999' : '#666666' }}>
-                        Approved status triggers onSnapshot sync, instantly modifying the active client dashboard indicators.
+                        Configure client strategy parameters, update milestones in real-time, and auto-dispatch status notifications.
                       </p>
                     </div>
                   </div>
 
                   {/* Realtime stats row */}
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="p-5 rounded-2xl border" style={{ backgroundColor: isDarkMode ? '#0F0F0F' : '#FFFFFF', borderColor: isDarkMode ? '#222222' : '#EAEAEA' }}>
+                    <div className="p-5 rounded-2xl border transition-all hover:shadow-[0_4px_15px_rgba(212,175,55,0.05)]" style={{ backgroundColor: isDarkMode ? '#0F0F0F' : '#FFFFFF', borderColor: isDarkMode ? '#222222' : '#EAEAEA' }}>
                       <span className="text-xs text-gray-400 font-medium uppercase tracking-wider block mb-1">Total Bookings</span>
                       <span className="text-2xl font-serif font-bold text-gold">{bookings.length}</span>
                     </div>
-                    <div className="p-5 rounded-2xl border" style={{ backgroundColor: isDarkMode ? '#0F0F0F' : '#FFFFFF', borderColor: isDarkMode ? '#222222' : '#EAEAEA' }}>
-                      <span className="text-xs text-yellow-500 font-medium uppercase tracking-wider block mb-1">Pending</span>
+                    
+                    <div className="p-5 rounded-2xl border transition-all hover:shadow-[0_4px_15px_rgba(212,175,55,0.05)]" style={{ backgroundColor: isDarkMode ? '#0F0F0F' : '#FFFFFF', borderColor: isDarkMode ? '#222222' : '#EAEAEA' }}>
+                      <span className="text-xs text-yellow-500 font-medium uppercase tracking-wider block mb-1">Pending Requests</span>
                       <span className="text-2xl font-serif font-bold text-yellow-500">{bookings.filter(b => b.status === 'Pending').length}</span>
                     </div>
-                    <div className="p-5 rounded-2xl border" style={{ backgroundColor: isDarkMode ? '#0F0F0F' : '#FFFFFF', borderColor: isDarkMode ? '#222222' : '#EAEAEA' }}>
-                      <span className="text-xs text-green-500 font-medium uppercase tracking-wider block mb-1">Approved</span>
-                      <span className="text-2xl font-serif font-bold text-green-400">{bookings.filter(b => b.status === 'Approved').length}</span>
+                    
+                    <div className="p-5 rounded-2xl border transition-all hover:shadow-[0_4px_15px_rgba(212,175,55,0.05)]" style={{ backgroundColor: isDarkMode ? '#0F0F0F' : '#FFFFFF', borderColor: isDarkMode ? '#222222' : '#EAEAEA' }}>
+                      <span className="text-xs text-green-500 font-medium uppercase tracking-wider block mb-1">Completed Calls</span>
+                      <span className="text-2xl font-serif font-bold text-green-400">{bookings.filter(b => b.status === 'Completed').length}</span>
                     </div>
-                    <div className="p-5 rounded-2xl border" style={{ backgroundColor: isDarkMode ? '#0F0F0F' : '#FFFFFF', borderColor: isDarkMode ? '#222222' : '#EAEAEA' }}>
-                      <span className="text-xs text-blue-500 font-medium uppercase tracking-wider block mb-1">Completed</span>
-                      <span className="text-2xl font-serif font-bold text-blue-400">{bookings.filter(b => b.status === 'Completed').length}</span>
+                    
+                    <div className="p-5 rounded-2xl border transition-all hover:shadow-[0_4px_15px_rgba(212,175,55,0.05)]" style={{ backgroundColor: isDarkMode ? '#0F0F0F' : '#FFFFFF', borderColor: isDarkMode ? '#222222' : '#EAEAEA' }}>
+                      <span className="text-xs text-blue-500 font-medium uppercase tracking-wider block mb-1">Today's Bookings</span>
+                      <span className="text-2xl font-serif font-bold text-blue-400">
+                        {(() => {
+                          const today = new Date();
+                          return bookings.filter(b => {
+                            if (!b.createdAt) return false;
+                            const bDate = b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+                            return bDate.getDate() === today.getDate() &&
+                                   bDate.getMonth() === today.getMonth() &&
+                                   bDate.getFullYear() === today.getFullYear();
+                          }).length;
+                        })()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Search and Filter System panel */}
+                  <div 
+                    className="p-5 rounded-2xl border flex flex-col md:flex-row items-center gap-4"
+                    style={{ 
+                      backgroundColor: isDarkMode ? '#0F0F0F' : '#FFFFFF', 
+                      borderColor: isDarkMode ? '#222222' : '#EAEAEA' 
+                    }}
+                  >
+                    <div className="relative flex-1 w-full">
+                      <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                      <input
+                        type="text"
+                        placeholder="Search by code, customer name, email address, or company entity..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full bg-black/20 border border-white/5 rounded-xl py-2.5 pl-12 pr-4 text-xs focus:outline-none focus:border-gold transition-colors text-white"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2 w-full md:w-auto">
+                      <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider whitespace-nowrap">Filter Status:</span>
+                      <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="bg-[#111] text-xs text-white border border-white/10 rounded-xl px-3 py-2 focus:outline-none focus:border-gold"
+                      >
+                        <option value="All">All Milestones</option>
+                        <option value="Pending">Pending</option>
+                        <option value="In Review">In Review</option>
+                        <option value="Scheduled">Scheduled</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
+                      </select>
                     </div>
                   </div>
 
@@ -389,92 +494,143 @@ export function AdminDashboard() {
                       borderColor: isDarkMode ? '#222222' : '#EAEAEA' 
                     }}
                   >
-                    {bookings.length === 0 ? (
-                      <p className="text-gray-500 italic text-center py-12">No scheduled consultation bookings present in Firestore.</p>
-                    ) : (
-                      <div className="overflow-x-auto custom-scrollbar">
-                        <table className="w-full text-left border-collapse min-w-[900px] text-xs">
-                          <thead>
-                            <tr className="border-b border-light-gray/10 text-gray-500 font-bold uppercase select-none">
-                              <th className="py-4 font-mono">Code ID</th>
-                              <th className="py-4">Affiliate Client</th>
-                              <th className="py-4">Date & Hour</th>
-                              <th className="py-4">Selected Service</th>
-                              <th className="py-4">Status Pin</th>
-                              <th className="py-4">Created</th>
-                              <th className="py-4 text-right">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-light-gray/5">
-                            {bookings.map((booking) => (
-                              <tr key={booking.id} className="hover:bg-white/5 transition-all text-xs font-medium">
-                                <td className="py-3">
-                                  <span className="font-mono font-bold text-gold bg-gold/10 px-2 py-0.5 rounded border border-gold/10">
-                                    {booking.bookingId}
-                                  </span>
-                                </td>
-                                <td className="py-3">
-                                  <span className="font-bold text-white block" style={{ color: isDarkMode ? '#FFFFFF' : '#0A0A0A' }}>{booking.userName || "VIP Prospect"}</span>
-                                  <span className="text-[10px] text-gray-500">{booking.userEmail}</span>
-                                </td>
-                                <td className="py-3">
-                                  <span className="text-white font-bold block" style={{ color: isDarkMode ? '#FFFFFF' : '#0A0A0A' }}>{booking.bookingDate}</span>
-                                  <span className="text-[10px] font-mono text-gray-500">{booking.bookingTime}</span>
-                                </td>
-                                <td className="py-3 text-gold font-bold">{booking.serviceType}</td>
-                                <td className="py-3">
-                                  <span className={`text-[9px] tracking-wider uppercase font-extrabold px-2 py-0.5 rounded border ${
-                                    booking.status === 'Approved' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
-                                    booking.status === 'Completed' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-                                    booking.status === 'Rejected' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
-                                    'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
-                                  }`}>
-                                    {booking.status}
-                                  </span>
-                                </td>
-                                <td className="py-3 text-gray-500 font-mono">
-                                  {booking.createdAt ? format(booking.createdAt.toDate(), 'PP p') : 'Just now'}
-                                </td>
-                                <td className="py-3 text-right">
-                                  <div className="flex items-center justify-end gap-1.5">
-                                    {booking.status !== 'Approved' && (
-                                      <button
-                                        onClick={() => updateBookingStatus(booking.id, 'Approved')}
-                                        className="px-2 py-1 border border-green-500/30 text-green-400 hover:bg-green-500 hover:text-black rounded transition-all font-bold cursor-pointer font-sans"
-                                      >
-                                        Approve
-                                      </button>
-                                    )}
-                                    {booking.status !== 'Completed' && (
-                                      <button
-                                        onClick={() => updateBookingStatus(booking.id, 'Completed')}
-                                        className="px-2 py-1 border border-blue-500/30 text-blue-400 hover:bg-blue-500 hover:text-white rounded transition-all font-bold cursor-pointer font-sans"
-                                      >
-                                        Complete
-                                      </button>
-                                    )}
-                                    {booking.status !== 'Rejected' && (
-                                      <button
-                                        onClick={() => updateBookingStatus(booking.id, 'Rejected')}
-                                        className="px-2 py-1 border border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white rounded transition-all font-bold cursor-pointer font-sans"
-                                      >
-                                        Reject
-                                      </button>
-                                    )}
-                                    <button
-                                      onClick={() => handleDeleteBooking(booking.id)}
-                                      className="p-1 px-1.5 border border-white/10 hover:border-red-500/30 text-gray-500 hover:text-red-500 rounded transition-all cursor-pointer"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                  </div>
-                                </td>
+                    {(() => {
+                      const filteredBookings = bookings.filter(b => {
+                        const matchesSearch = 
+                          (b.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (b.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (b.bookingId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (b.companyName || '').toLowerCase().includes(searchTerm.toLowerCase());
+                        
+                        const matchesStatus = statusFilter === 'All' || [b.status, b.statusPin].includes(statusFilter);
+                        return matchesSearch && matchesStatus;
+                      });
+
+                      if (filteredBookings.length === 0) {
+                        return <p className="text-gray-500 italic text-center py-12 text-xs">No matching scheduled consultation bookings found in Firestore.</p>;
+                      }
+
+                      return (
+                        <div className="overflow-x-auto custom-scrollbar">
+                          <table className="w-full text-left border-collapse min-w-[1100px] text-xs">
+                            <thead>
+                              <tr className="border-b border-light-gray/10 text-gray-500 font-bold uppercase select-none">
+                                <th className="py-4 font-mono">Booking ID</th>
+                                <th className="py-4">Name & Email</th>
+                                <th className="py-4">Phone Number</th>
+                                <th className="py-4">Company Name</th>
+                                <th className="py-4">Service Interested In</th>
+                                <th className="py-4">Monthly Budget</th>
+                                <th className="py-4">Date Submitted</th>
+                                <th className="py-4">Assigned Advisor</th>
+                                <th className="py-4">Status</th>
+                                <th className="py-4 text-right">Actions</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
+                            </thead>
+                            <tbody className="divide-y divide-light-gray/5">
+                              {filteredBookings.map((booking) => (
+                                <tr key={booking.id} className="hover:bg-white/5 transition-all text-xs font-medium">
+                                  {/* ID */}
+                                  <td className="py-4">
+                                    <span className="font-mono font-bold text-gold bg-gold/10 px-2 py-0.5 rounded border border-gold/10">
+                                      {booking.bookingId || "LL-UNKNOWN"}
+                                    </span>
+                                  </td>
+                                  
+                                  {/* Name / Email */}
+                                  <td className="py-4">
+                                    <span className="font-bold block" style={{ color: isDarkMode ? '#FFFFFF' : '#0A0A0A' }}>
+                                      {booking.fullName || "VIP Customer"}
+                                    </span>
+                                    <span className="text-[10px] text-gray-500">{booking.email}</span>
+                                  </td>
+
+                                  {/* Phone */}
+                                  <td className="py-4 text-gray-300 font-mono">
+                                    {booking.phone || "No Phone"}
+                                  </td>
+
+                                  {/* Company */}
+                                  <td className="py-4 text-gray-300">
+                                    {booking.companyName || "N/A"}
+                                  </td>
+
+                                  {/* Service */}
+                                  <td className="py-4 text-gold font-semibold max-w-[200px] truncate" title={booking.serviceInterested}>
+                                    {booking.serviceInterested || "Premium Consult"}
+                                  </td>
+
+                                  {/* Budget */}
+                                  <td className="py-4 text-gray-300 font-semibold">
+                                    {booking.budget || "N/A"}
+                                  </td>
+
+                                  {/* Date Created */}
+                                  <td className="py-4 text-gray-500 font-mono">
+                                    {booking.createdAt ? format(booking.createdAt.toDate ? booking.createdAt.toDate() : new Date(booking.createdAt), 'PP p') : 'Just now'}
+                                  </td>
+
+                                  {/* Assigned TO */}
+                                  <td className="py-4">
+                                    <input
+                                      type="text"
+                                      placeholder="Unassigned"
+                                      defaultValue={booking.assignedTo || ""}
+                                      onBlur={(e) => updateBookingAdvisor(booking.id, e.target.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          updateBookingAdvisor(booking.id, (e.target as HTMLInputElement).value);
+                                          (e.target as HTMLInputElement).blur();
+                                        }
+                                      }}
+                                      className="bg-black/40 border border-white/5 text-xs text-white rounded px-2 py-1 focus:outline-none focus:border-gold w-28 placeholder-gray-700"
+                                    />
+                                  </td>
+
+                                  {/* Status display badge */}
+                                  <td className="py-4">
+                                    <span className={`text-[9px] tracking-wider uppercase font-extrabold px-2 py-0.5 rounded border ${
+                                      booking.status === 'Completed' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                                      booking.status === 'Scheduled' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                                      booking.status === 'In Review' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
+                                      booking.status === 'Cancelled' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                                      'bg-gold/10 text-gold border-gold/20'
+                                    }`}>
+                                      {booking.status}
+                                    </span>
+                                  </td>
+
+                                  {/* Dropdown status update Actions */}
+                                  <td className="py-4 text-right">
+                                    <div className="flex items-center justify-end gap-2">
+                                      <select
+                                        value={booking.status}
+                                        onChange={(e) => updateBookingStatus(booking.id, e.target.value)}
+                                        className="bg-[#151515] text-[10px] text-gray-300 border border-white/10 rounded px-1.5 py-1 focus:outline-none focus:border-gold font-sans font-bold"
+                                      >
+                                        <option value="Pending">Pending</option>
+                                        <option value="In Review">In Review</option>
+                                        <option value="Scheduled">Scheduled</option>
+                                        <option value="Completed">Completed</option>
+                                        <option value="Cancelled">Cancelled</option>
+                                      </select>
+
+                                      <button
+                                        onClick={() => handleDeleteBooking(booking.id)}
+                                        className="p-1 px-1.5 border border-white/10 hover:border-red-500/30 text-gray-500 hover:text-red-500 rounded transition-all cursor-pointer"
+                                        title="Delete Log"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               )}

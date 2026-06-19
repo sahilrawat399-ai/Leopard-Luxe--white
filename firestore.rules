@@ -66,17 +66,19 @@ service cloud.firestore {
     }
 
     function isValidBooking(data) {
-      return data.keys().hasAll(['bookingId', 'userId', 'userName', 'userEmail', 'serviceType', 'bookingDate', 'bookingTime', 'notes', 'status', 'createdAt'])
-        && data.bookingId is string && data.bookingId.size() == 6
-        && data.userId is string && data.userId.size() <= 128
-        && data.userName is string && data.userName.size() <= 150
-        && data.userEmail is string && data.userEmail.size() <= 150
-        && data.serviceType is string && data.serviceType.size() <= 150
-        && data.bookingDate is string && data.bookingDate.size() <= 20
-        && data.bookingTime is string && data.bookingTime.size() <= 20
-        && data.notes is string && data.notes.size() <= 1500
-        && data.status is string && data.status in ['Pending', 'Approved', 'Completed', 'Rejected']
-        && data.createdAt is timestamp;
+      return data.keys().hasAll(['bookingId', 'fullName', 'email', 'phone', 'status', 'createdAt', 'updatedAt'])
+        && data.bookingId is string && data.bookingId.size() == 9
+        && data.fullName is string && data.fullName.size() <= 150
+        && data.email is string && data.email.size() <= 150
+        && data.phone is string && data.phone.size() <= 50
+        && data.status is string && data.status in ['Pending', 'In Review', 'Scheduled', 'Completed', 'Cancelled']
+        && (!('companyName' in data) || (data.companyName is string && data.companyName.size() <= 150))
+        && (!('serviceInterested' in data) || (data.serviceInterested is string && data.serviceInterested.size() <= 150))
+        && (!('budget' in data) || (data.budget is string && data.budget.size() <= 100))
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 2000))
+        && (!('assignedTo' in data) || (data.assignedTo is string && data.assignedTo.size() <= 150))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
     }
     
     function isValidProjectUpdate(data) {
@@ -105,6 +107,19 @@ service cloud.firestore {
         && data.status is string && data.status in ["New Lead", "Contacted", "Qualified", "Proposal Sent", "Closed Won", "Closed Lost"]
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;
+    }
+
+    function isValidMeetingRequest(data) {
+      return data.keys().hasAll(['bookingId', 'userEmail', 'userName', 'selectedDate', 'selectedTime', 'serviceType', 'status', 'createdAt'])
+        && data.bookingId is number
+        && data.userEmail is string && data.userEmail.size() <= 150
+        && data.userName is string && data.userName.size() <= 150
+        && data.selectedDate is string && data.selectedDate.size() <= 50
+        && data.selectedTime is string && data.selectedTime.size() <= 50
+        && data.serviceType is string && data.serviceType.size() <= 150
+        && data.status is string && data.status == 'Pending'
+        && data.createdAt is timestamp
+        && (!('additionalNotes' in data) || (data.additionalNotes is string && data.additionalNotes.size() <= 1500));
     }
 
     // --- Collections ---
@@ -192,24 +207,24 @@ service cloud.firestore {
     }
 
     match /bookings/{bookingId} {
-      allow read: if isSignedIn() && isValidId(bookingId) && (isAdmin() || existing().userId == request.auth.uid);
-      allow list: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow get: if true; // Allowed so customers can search and retrieve their specific booking with its secure key
+      allow list: if isSignedIn() && (isAdmin() || resource.data.email == request.auth.token.email);
       
-      // Client can book meeting
-      allow create: if isSignedIn()
-        && isValidId(bookingId)
+      // Allow visitors to submit strategy call booking requests
+      allow create: if isValidId(bookingId)
         && isValidBooking(incoming())
         && incoming().createdAt == request.time
-        && incoming().userId == request.auth.uid
+        && incoming().updatedAt == request.time
         && incoming().status == 'Pending';
         
-      // Admin can update
+      // Only admins can update booking records
       allow update: if isSignedIn()
         && isValidId(bookingId)
         && isValidBooking(incoming())
         && isAdmin()
         && incoming().bookingId == existing().bookingId
-        && incoming().userId == existing().userId
+        && incoming().email == existing().email
+        && incoming().fullName == existing().fullName
         && incoming().createdAt == existing().createdAt;
         
       allow delete: if isAdmin() && isValidId(bookingId);
@@ -264,6 +279,27 @@ service cloud.firestore {
         && incoming().createdAt == existing().createdAt;
         
       allow delete: if isAdmin() && isValidId(leadId);
+    }
+
+    match /meetingRequests/{requestId} {
+      allow read: if isSignedIn() && isValidId(requestId) && (isAdmin() || existing().userEmail == request.auth.token.email);
+      allow list: if isSignedIn() && (isAdmin() || resource.data.userEmail == request.auth.token.email);
+      
+      allow create: if isSignedIn()
+        && isValidId(requestId)
+        && isValidMeetingRequest(incoming())
+        && incoming().createdAt == request.time
+        && incoming().userEmail == request.auth.token.email;
+        
+      allow update: if isSignedIn()
+        && isValidId(requestId)
+        && isValidMeetingRequest(incoming())
+        && isAdmin()
+        && incoming().bookingId == existing().bookingId
+        && incoming().userEmail == existing().userEmail
+        && incoming().createdAt == existing().createdAt;
+        
+      allow delete: if isAdmin() && isValidId(requestId);
     }
   }
 }

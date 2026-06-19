@@ -14,13 +14,13 @@ export function ProtectedRoute({ children, adminOnly = false }: { children: Reac
   }
 
   if (!user) {
-    return <Navigate to="/login" />;
+    return <Navigate to={adminOnly ? "/admin-login" : "/login"} />;
   }
 
   const isTargetAdmin = user.email?.toLowerCase() === 'sahilrawat399@gmail.com';
 
   if (adminOnly && !isTargetAdmin) {
-    return <Navigate to="/portal" />;
+    return <Navigate to="/admin-login" />;
   }
 
   return <>{children}</>;

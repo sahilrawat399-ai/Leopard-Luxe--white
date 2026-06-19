@@ -1,17 +1,19 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useEffect } from 'react';
-import { Phone, ArrowRight, Menu, X } from 'lucide-react';
+import { Phone, ArrowRight, Menu, X, User } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
+import { useBookingStore } from '../stores/bookingStore';
 
 import logoSvg from '/assets/images/logo-bg.png';
 
-const desktopLinks = ['Services', 'Portfolio', 'Results', 'Pricing', 'FAQ'];
-const mobileLinks = ['Home', 'Services', 'Portfolio', 'Process', 'Case Studies', 'Results', 'Pricing', 'FAQ', 'Contact'];
+const desktopLinks = ['Services', 'Portfolio', 'Results', 'Pricing'];
+const mobileLinks = ['Home', 'Services', 'Portfolio', 'Results', 'Pricing', 'Bookings'];
 
 export function Header() {
   const { user } = useAuthStore();
   const isAdmin = user?.email?.toLowerCase() === 'sahilrawat399@gmail.com';
+  const { setBookingFormOpen } = useBookingStore();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
@@ -33,7 +35,7 @@ export function Header() {
         className="fixed top-4 md:top-6 left-0 right-0 mx-auto w-[calc(100%-2rem)] max-w-[1400px] h-[90px] rounded-[18px] z-[100] flex items-center justify-between px-6 lg:px-8 border border-gold/30 shadow-[0_0_30px_rgba(212,175,55,0.15)] bg-gradient-to-r from-[#050505]/95 to-[#111111]/95 backdrop-blur-xl overflow-hidden"
       >
         {/* Animated Gold Beam */}
-        <div className="absolute top-0 -inset-full h-full w-1/2 z-0 block transform -skew-x-[30deg] bg-gradient-to-r from-transparent via-gold/10 to-transparent animate-[shine_5s_ease-in-out_infinite]" />
+        <div className="absolute top-0 -inset-full h-full w-1/2 z-0 block transform -skew-x-[30deg] bg-gradient-to-r from-transparent via-gold/10 to-transparent autoshine pointer-events-none" />
 
         {/* Subtle Gold Particles inside header */}
         <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
@@ -61,10 +63,10 @@ export function Header() {
         </div>
 
         {/* LEFT SECTION: Logo & Brand */}
-        <div className="relative z-10 flex items-center gap-4 cursor-pointer">
-          <Link to="/" className="w-20 h-12 relative flex items-center justify-center">
+        <div className="relative z-10 flex items-center gap-4 cursor-pointer" onClick={() => navigate('/')}>
+          <div className="w-20 h-12 relative flex items-center justify-center">
             <img src={logoSvg} alt="Leopard Luxe Logo" className="w-20 h-12 object-contain" />
-          </Link>
+          </div>
           <div className="flex flex-col">
             <div className="font-serif text-xl tracking-[0.15em] font-bold leading-none mb-1 flex items-center">
               <span className="text-white">LEOPARD</span>
@@ -76,51 +78,51 @@ export function Header() {
           </div>
         </div>
 
-        {/* CENTER NAVIGATION */}
+        {/* CENTER / RIGHT NAVIGATION SYSTEM */}
+        {/* Exact Sequential Layout: [Services] [Portfolio] [Results] [Pricing] [Admin Icon] [Bookings] */}
         <nav className="relative z-10 hidden xl:flex items-center gap-8">
           {desktopLinks.map((link) => (
             <Link
               key={link}
-              to={link === 'Portfolio' ? '/portfolio' : link === 'Services' ? '/services' : link === 'Results' ? '/results' : link === 'Pricing' ? '/pricing' : link === 'FAQ' ? '/faq' : `/#${link.toLowerCase().replace(' ', '-')}`}
+              to={link === 'Portfolio' ? '/portfolio' : link === 'Services' ? '/services' : link === 'Results' ? '/results' : '/pricing'}
               className="group relative font-sans text-xs tracking-[0.15em] text-white uppercase font-semibold py-2 hover:text-gold transition-colors duration-300"
             >
               {link}
-              {/* Smooth underline animation */}
+              {/* Underline */}
               <span className="absolute bottom-0 left-0 w-0 h-[2px] bg-gradient-to-r from-[#D4AF37] to-[#B8860B] transition-all duration-300 group-hover:w-full rounded-full shadow-[0_0_8px_rgba(212,175,55,0.5)]"></span>
-              
-              {/* Shine effect on hover */}
-              <span className="absolute inset-0 w-0 bg-gradient-to-r from-transparent via-white/10 to-transparent group-hover:w-full transition-all duration-500 opacity-0 group-hover:opacity-100 mix-blend-overlay"></span>
             </Link>
           ))}
-          {isAdmin && (
-            <Link
-              to="/admin"
-              className="group relative font-sans text-xs tracking-[0.15em] text-gold hover:text-white uppercase font-bold py-2 transition-colors duration-300"
-            >
-              Admin Panel
-              <span className="absolute bottom-0 left-0 w-0 h-[2px] bg-gradient-to-r from-[#D4AF37] to-[#B8860B] transition-all duration-300 group-hover:w-full rounded-full shadow-[0_0_8px_rgba(212,175,55,0.5)]"></span>
-            </Link>
-          )}
-        </nav>
 
-        {/* RIGHT SECTION: Buttons */}
-        <div className="relative z-10 hidden lg:flex items-center gap-4">
-          <Link to={user ? "/dashboard" : "/login"} className="hidden lg:inline-flex items-center justify-center gap-2 group border border-gold/30 hover:border-gold bg-transparent text-gold px-6 py-3 rounded-[14px] font-bold tracking-widest text-xs uppercase transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_15px_rgba(212,175,55,0.2)]">
-            {user ? 'My Dashboard' : 'Sign In / Sign Up'}
+          {/* Admin Icon */}
+          <Link
+            to="/admin-login"
+            title="Admin Portal"
+            className="text-white hover:text-gold p-2 transition-colors duration-300 flex items-center justify-center"
+          >
+            <User className="w-5 h-5 text-gold hover:scale-110 transition-transform" />
           </Link>
-          <button onClick={() => navigate('/discovery')} className="group relative flex items-center gap-2 px-6 py-3 rounded-[14px] font-bold tracking-widest text-xs uppercase text-rich-black transition-all duration-300 hover:-translate-y-1 shadow-[0_5px_20px_rgba(212,175,55,0.3)] bg-gradient-to-r from-[#D4AF37] to-[#B8860B] overflow-hidden">
-            {/* Shine sweep */}
-            <span className="absolute top-0 -inset-full h-full w-1/2 block transform -skew-x-[30deg] bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-[shine_1s_ease-in-out_infinite]" />
-            <span className="relative z-10 flex items-center gap-2">
-              Book Consultation
-              <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
-            </span>
+
+          {/* Bookings Button */}
+          <Link
+            to="/bookings"
+            className="border border-gold/30 hover:border-gold bg-transparent text-gold px-5 py-2.5 rounded-[12px] font-sans font-bold tracking-widest text-[10px] uppercase transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(212,175,55,0.2)]"
+          >
+            Bookings
+          </Link>
+
+          {/* Book Strategy Call CTA */}
+          <button
+            onClick={() => setBookingFormOpen(true)}
+            className="group relative flex items-center gap-2 px-5 py-2.5 rounded-[12px] font-sans font-bold tracking-widest text-[10px] uppercase text-rich-black transition-all duration-300 hover:scale-[1.02] shadow-[0_5px_15px_rgba(212,175,55,0.25)] bg-gradient-to-r from-[#D4AF37] to-[#B8860B]"
+          >
+            Book Strategy Call
+            <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
           </button>
-        </div>
+        </nav>
 
         {/* MOBILE MENU TOGGLE */}
         <button
-          className="lg:hidden relative z-50 p-2 text-white hover:text-gold transition-colors focus:outline-none"
+          className="xl:hidden relative z-50 p-2 text-white hover:text-gold transition-colors focus:outline-none cursor-pointer"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         >
           {isMobileMenuOpen ? <X className="w-8 h-8" /> : <Menu className="w-8 h-8" />}
@@ -137,61 +139,48 @@ export function Header() {
             transition={{ duration: 0.5, ease: 'easeOut' }}
             className="fixed inset-0 z-[90] bg-rich-black flex flex-col items-center justify-start border-b border-gold/20 shadow-[0_20px_50px_rgba(212,175,55,0.1)] overflow-y-auto"
           >
-            {/* Abstract Background for Mobile Menu */}
-             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(212,175,55,0.1)_0%,transparent_70%)] pointer-events-none" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(212,175,55,0.1)_0%,transparent_70%)] pointer-events-none" />
              
             <nav className="flex flex-col items-center gap-6 relative z-10 w-full pt-32 pb-24 px-6 min-h-screen">
               {mobileLinks.map((link, index) => (
                 <Link
                   key={link}
-                  to={link === 'Portfolio' ? '/portfolio' : link === 'Services' ? '/services' : link === 'Results' ? '/results' : link === 'Pricing' ? '/pricing' : link === 'FAQ' ? '/faq' : `/#${link.toLowerCase().replace(' ', '-')}`}
+                  to={link === 'Home' ? '/' : link === 'Portfolio' ? '/portfolio' : link === 'Services' ? '/services' : link === 'Results' ? '/results' : link === 'Pricing' ? '/pricing' : '/bookings'}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="font-serif text-3xl md:text-4xl text-white hover:text-gold transition-colors"
                 >
                   <motion.span
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1, duration: 0.3 }}
+                    transition={{ delay: index * 0.08, duration: 0.3 }}
                   >
                     {link}
                   </motion.span>
                 </Link>
               ))}
-              {isAdmin && (
-                <Link
-                  to="/admin"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="font-serif text-3xl md:text-4xl text-gold hover:text-white transition-colors font-bold"
-                >
-                  <motion.span
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: mobileLinks.length * 0.1, duration: 0.3 }}
-                  >
-                    Admin Panel
-                  </motion.span>
-                </Link>
-              )}
+
+              <Link
+                to="/admin-login"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="font-serif text-3xl md:text-4xl text-gold hover:text-white transition-colors flex items-center gap-3 font-semibold"
+              >
+                <User className="w-7 h-7" /> Admin Portal
+              </Link>
               
               <motion.div 
                  initial={{ opacity: 0 }}
                  animate={{ opacity: 1 }}
-                 transition={{ delay: 0.5 }}
+                 transition={{ delay: 0.4 }}
                  className="flex flex-col items-center gap-4 mt-8 w-full max-w-sm"
               >
-                 <Link
-                   to={user ? "/dashboard" : "/login"}
-                   onClick={() => setIsMobileMenuOpen(false)}
-                   className="w-full flex items-center justify-center gap-2 px-5 py-4 rounded-[14px] border border-gold text-gold font-bold tracking-widest text-sm uppercase text-center cursor-pointer select-none"
+                 <button
+                   onClick={() => {
+                     setIsMobileMenuOpen(false);
+                     setBookingFormOpen(true);
+                   }}
+                   className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-bold tracking-widest text-sm uppercase text-rich-black bg-gradient-to-r from-[#D4AF37] to-[#B8860B] shadow-[0_5px_20px_rgba(212,175,55,0.3)] cursor-pointer"
                  >
-                   {user ? 'My Dashboard' : 'Sign In / Sign Up'}
-                 </Link>
-                 <button className="w-full flex items-center justify-center gap-2 px-5 py-4 rounded-[14px] border border-gold/40 text-gold/80 font-medium tracking-widest text-sm uppercase cursor-pointer">
-                   <Phone className="w-5 h-5" />
-                   Call Us
-                 </button>
-                 <button className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-full font-bold tracking-widest text-sm uppercase text-rich-black bg-gradient-to-r from-[#D4AF37] to-[#B8860B] shadow-[0_5px_20px_rgba(212,175,55,0.3)]">
-                   Book Consultation <ArrowRight className="w-5 h-5" />
+                   Book Strategy Call <ArrowRight className="w-5 h-5" />
                  </button>
               </motion.div>
             </nav>

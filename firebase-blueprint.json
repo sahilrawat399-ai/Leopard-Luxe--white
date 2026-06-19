@@ -55,21 +55,23 @@
     },
     "Booking": {
       "title": "Booking",
-      "description": "A scheduled meeting booking",
+      "description": "Leopard Luxe Strategy Call booking requests",
       "type": "object",
       "properties": {
         "bookingId": { "type": "string" },
-        "userId": { "type": "string" },
-        "userName": { "type": "string" },
-        "userEmail": { "type": "string" },
-        "serviceType": { "type": "string" },
-        "bookingDate": { "type": "string" },
-        "bookingTime": { "type": "string" },
+        "fullName": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "companyName": { "type": "string" },
+        "serviceInterested": { "type": "string" },
+        "budget": { "type": "string" },
         "notes": { "type": "string" },
-        "status": { "type": "string", "enum": ["Pending", "Approved", "Completed", "Rejected"] },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "status": { "type": "string", "enum": ["Pending", "In Review", "Scheduled", "Completed", "Cancelled"] },
+        "assignedTo": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["bookingId", "userId", "userName", "userEmail", "serviceType", "bookingDate", "bookingTime", "status", "createdAt"]
+      "required": ["bookingId", "fullName", "email", "phone", "status", "createdAt", "updatedAt"]
     },
     "ProjectUpdate": {
       "title": "Project Update",
@@ -122,6 +124,23 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["fullName", "email", "status", "createdAt", "updatedAt"]
+    },
+    "MeetingRequest": {
+      "title": "Meeting Request",
+      "description": "A formal client meeting request",
+      "type": "object",
+      "properties": {
+        "bookingId": { "type": "number" },
+        "userEmail": { "type": "string" },
+        "userName": { "type": "string" },
+        "selectedDate": { "type": "string" },
+        "selectedTime": { "type": "string" },
+        "serviceType": { "type": "string" },
+        "additionalNotes": { "type": "string" },
+        "status": { "type": "string", "enum": ["Pending"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["bookingId", "userEmail", "userName", "selectedDate", "selectedTime", "serviceType", "status", "createdAt"]
     }
   },
   "firestore": {
@@ -152,6 +171,10 @@
     "leads/{leadId}": {
       "schema": { "$ref": "#/entities/Lead" },
       "description": "Leads submitted from the discovery form."
+    },
+    "meetingRequests/{requestId}": {
+      "schema": { "$ref": "#/entities/MeetingRequest" },
+      "description": "Stores client meeting requests."
     }
   }
 }

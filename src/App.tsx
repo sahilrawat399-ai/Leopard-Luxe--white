@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Header } from './components/Header';
+import { BookingFormModal } from './components/BookingFormModal';
 import { Preloader } from './components/Preloader';
 import { Footer } from './components/Footer';
 import { FloatingButtons } from './components/FloatingButtons';
@@ -23,6 +24,8 @@ import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { Dashboard } from './pages/Dashboard';
 import { ClientPortal } from './pages/ClientPortal';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { AdminLoginPage } from './pages/AdminLoginPage';
+import { BookingTrackerPage } from './pages/BookingTrackerPage';
 import { DiscoveryPage } from './pages/DiscoveryPage';
 import { ScrollToTop } from './components/ScrollToTop';
 import { AnalyticsTracker } from './components/AnalyticsTracker';
@@ -37,7 +40,12 @@ export default function App() {
         <ScrollToTop />
         {!preloaderFinished && <Preloader onComplete={() => setPreloaderFinished(true)} />}
         
-        {preloaderFinished && <Header />}
+        {preloaderFinished && (
+          <>
+            <Header />
+            <BookingFormModal />
+          </>
+        )}
         
         <div className={`transition-opacity duration-1000 ${preloaderFinished ? 'opacity-100' : 'opacity-0 h-screen overflow-hidden'}`}>
           <Routes>
@@ -51,6 +59,8 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/admin-login" element={<AdminLoginPage />} />
+            <Route path="/bookings" element={<BookingTrackerPage />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/portal" element={<ProtectedRoute><ClientPortal /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
