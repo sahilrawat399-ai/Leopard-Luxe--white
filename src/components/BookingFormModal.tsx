@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Eye, Check, Copy, ArrowRight, User, Mail, Phone, Building, Briefcase, DollarSign, FileText } from 'lucide-react';
+import { X, Eye, Check, Copy, ArrowRight, User, Mail, Phone, Building, Briefcase, DollarSign, FileText, Calendar, Clock } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useBookingStore } from '../stores/bookingStore';
@@ -23,6 +23,15 @@ const BUDGETS = [
   "$25,000+ / month"
 ];
 
+// Professional time ranges
+const TIME_SLOTS = [
+  "09:00 AM", "09:30 AM", "10:00 AM", "10:30 AM",
+  "11:00 AM", "11:30 AM", "12:00 PM", "12:30 PM",
+  "01:00 PM", "01:30 PM", "02:00 PM", "02:30 PM",
+  "03:00 PM", "03:30 PM", "04:00 PM", "04:30 PM",
+  "05:00 PM"
+];
+
 export function BookingFormModal() {
   const { isBookingFormOpen, setBookingFormOpen } = useBookingStore();
   const navigate = useNavigate();
@@ -35,6 +44,21 @@ export function BookingFormModal() {
   const [serviceInterested, setServiceInterested] = useState(SERVICES[0]);
   const [budget, setBudget] = useState(BUDGETS[0]);
   const [notes, setNotes] = useState('');
+
+  // Schedulers
+  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedTime, setSelectedTime] = useState('');
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [isTimeOpen, setIsTimeOpen] = useState(false);
+
+  // Month & year tracking for calendar picker
+  const [calMonth, setCalMonth] = useState(new Date().getMonth());
+  const [calYear, setCalYear] = useState(new Date().getFullYear());
+
+  // Successful submission capture states
+  const [successDate, setSuccessDate] = useState('');
+  const [successTime, setSuccessTime] = useState('');
+  const [successEmail, setSuccessEmail] = useState('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingId, setBookingId] = useState('');
@@ -61,6 +85,28 @@ export function BookingFormModal() {
     return `LL-${Math.floor(100000 + Math.random() * 900000)}`;
   };
 
+  const todayDate = new Date();
+  todayDate.setHours(0, 0, 0, 0);
+
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+  
+  const weekdays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+  const getDaysInMonth = (year: number, month: number) => {
+    return new Date(year, month + 1, 0).getDate();
+  };
+
+  const getFirstDayOfMonth = (year: number, month: number) => {
+    return new Date(year, month, 1).getDay();
+  };
+
+  const formatDateHuman = (d: Date): string => {
+    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+  };
+
   const handleCopy = () => {
     navigator.clipboard.writeText(bookingId);
     setCopied(true);
@@ -70,7 +116,7 @@ export function BookingFormModal() {
   const handleTrackBookingRedirect = () => {
     setBookingFormOpen(false);
     setIsSuccess(false);
-    navigate('/bookings', { state: { bookingId, email } });
+    navigate('/bookings', { state: { bookingId, email: successEmail } });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -80,12 +126,22 @@ export function BookingFormModal() {
       return;
     }
 
+    if (!selectedDate || !selectedTime) {
+      setError("Please select both your Preferred Meeting Date and Preferred Meeting Time.");
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
 
     try {
       const uniqueId = await generateUniqueBookingId();
       setBookingId(uniqueId);
+      
+      // Capture state values for read-out on the Success Popup
+      setSuccessDate(selectedDate);
+      setSuccessTime(selectedTime);
+      setSuccessEmail(email.trim().toLowerCase());
 
       // Create document payload matching step 4 structure
       const bookingPayload = {
@@ -97,6 +153,8 @@ export function BookingFormModal() {
         serviceInterested,
         budget,
         notes: notes.trim() || "N/A",
+        selectedDate,
+        selectedTime,
         status: "Pending",
         assignedTo: "",
         createdAt: serverTimestamp(),
@@ -114,10 +172,16 @@ export function BookingFormModal() {
 
 Thank you for booking a strategy call with Leopard Luxe.
 
-Your Booking ID:
+Booking ID:
 ${uniqueId}
 
-Current Status:
+Meeting Date:
+${selectedDate}
+
+Meeting Time:
+${selectedTime}
+
+Status:
 Pending
 
 Use this Booking ID together with your Email Address to track your booking anytime.
@@ -139,9 +203,11 @@ Leopard Luxe Team`;
       setServiceInterested(SERVICES[0]);
       setBudget(BUDGETS[0]);
       setNotes('');
+      setSelectedDate('');
+      setSelectedTime('');
     } catch (err: any) {
       console.error("Booking submission error:", err);
-      setError(err?.message || "An unexpected error occurred while saving your booking. Please try again.");
+      setError("Unable to create booking. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -290,6 +356,165 @@ Leopard Luxe Team`;
                       </select>
                     </div>
                   </div>
+
+                  {/* Preferred Meeting Date (Calendar Picker) */}
+                  <div className="relative">
+                    <label className="block text-xs font-bold tracking-wider text-gray-400 uppercase mb-2">Preferred Meeting Date *</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCalendarOpen(!isCalendarOpen);
+                        setIsTimeOpen(false);
+                      }}
+                      className="w-full bg-black border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white text-left focus:outline-none focus:border-gold transition-colors text-sm flex items-center justify-between cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Calendar className="w-4 h-4 text-gold flex-shrink-0" />
+                        <span className={selectedDate ? "text-white font-medium" : "text-gray-400"}>
+                          {selectedDate || "Select Preferred Date"}
+                        </span>
+                      </div>
+                    </button>
+
+                    {isCalendarOpen && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setIsCalendarOpen(false)} />
+                        <div className="absolute top-[102%] left-0 w-full bg-[#111] border border-gold/40 rounded-2xl p-4 shadow-[0_10px_30px_rgba(0,0,0,0.85)] z-50 text-xs text-white">
+                          <div className="flex items-center justify-between mb-3 pb-2 border-b border-white/5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const currentYear = new Date().getFullYear();
+                                const currentM = new Date().getMonth();
+                                if (calYear > currentYear || calMonth > currentM) {
+                                  if (calMonth === 0) {
+                                    setCalMonth(11);
+                                    setCalYear(calYear - 1);
+                                  } else {
+                                    setCalMonth(calMonth - 1);
+                                  }
+                                }
+                              }}
+                              className="text-gold font-bold hover:text-white px-2 py-1 bg-white/5 rounded cursor-pointer select-none"
+                            >
+                              &larr;
+                            </button>
+                            <span className="font-serif font-bold text-sm text-gold">
+                              {months[calMonth]} {calYear}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (calMonth === 11) {
+                                  setCalMonth(0);
+                                  setCalYear(calYear + 1);
+                                } else {
+                                  setCalMonth(calMonth + 1);
+                                }
+                              }}
+                              className="text-gold font-bold hover:text-white px-2 py-1 bg-white/5 rounded cursor-pointer select-none"
+                            >
+                              &rarr;
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-7 gap-1 text-center font-bold text-gray-500 mb-1 select-none">
+                            {weekdays.map(day => <span key={day}>{day}</span>)}
+                          </div>
+
+                          <div className="grid grid-cols-7 gap-1">
+                            {(() => {
+                              const startIdx = getFirstDayOfMonth(calYear, calMonth);
+                              const totalDays = getDaysInMonth(calYear, calMonth);
+                              const cells = [];
+
+                              for (let i = 0; i < startIdx; i++) {
+                                cells.push(<div key={`empty-${i}`} className="p-2" />);
+                              }
+
+                              for (let day = 1; day <= totalDays; day++) {
+                                const memoDate = new Date(calYear, calMonth, day);
+                                const isPast = memoDate < todayDate;
+                                const isSelected = selectedDate === formatDateHuman(memoDate);
+
+                                cells.push(
+                                  <button
+                                    key={`day-${day}`}
+                                    type="button"
+                                    disabled={isPast}
+                                    onClick={() => {
+                                      setSelectedDate(formatDateHuman(memoDate));
+                                      setIsCalendarOpen(false);
+                                    }}
+                                    className={`p-2 rounded-lg text-center font-semibold transition-all ${
+                                      isPast 
+                                        ? 'text-gray-700 cursor-not-allowed' 
+                                        : isSelected
+                                          ? 'bg-gold text-rich-black shadow-[0_0_10px_rgba(212,175,55,0.4)]'
+                                          : 'hover:bg-gold/10 hover:text-gold text-gray-200 cursor-pointer'
+                                    }`}
+                                  >
+                                    {day}
+                                  </button>
+                                );
+                              }
+                              return cells;
+                            })()}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Preferred Meeting Time (Custom professional slot list) */}
+                  <div className="relative">
+                    <label className="block text-xs font-bold tracking-wider text-gray-400 uppercase mb-2">Preferred Meeting Time *</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsTimeOpen(!isTimeOpen);
+                        setIsCalendarOpen(false);
+                      }}
+                      className="w-full bg-black border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white text-left focus:outline-none focus:border-gold transition-colors text-sm flex items-center justify-between cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Clock className="w-4 h-4 text-gold flex-shrink-0" />
+                        <span className={selectedTime ? "text-white font-medium" : "text-gray-400"}>
+                          {selectedTime || "Select Preferred Time"}
+                        </span>
+                      </div>
+                    </button>
+
+                    {isTimeOpen && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setIsTimeOpen(false)} />
+                        <div className="absolute top-[102%] left-0 w-full bg-[#111] border border-gold/40 rounded-2xl p-2 shadow-[0_10px_30px_rgba(0,0,0,0.85)] z-50 max-h-[220px] overflow-y-auto custom-scrollbar text-xs text-white">
+                          <div className="grid grid-cols-2 gap-1.5 p-1">
+                            {TIME_SLOTS.map((slot) => {
+                              const isSelected = selectedTime === slot;
+                              return (
+                                <button
+                                  key={slot}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedTime(slot);
+                                    setIsTimeOpen(false);
+                                  }}
+                                  className={`py-2 px-3 rounded-lg text-center font-medium transition-colors cursor-pointer ${
+                                    isSelected
+                                      ? 'bg-gold text-rich-black font-bold shadow-[0_0_8px_rgba(212,175,55,0.3)]'
+                                      : 'hover:bg-gold/10 hover:text-gold text-gray-200 bg-white/[0.02]'
+                                  }`}
+                                >
+                                  {slot}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 {/* Additional Notes */}
@@ -341,15 +566,29 @@ Leopard Luxe Team`;
                   Thank you for choosing Leopard Luxe.
                 </p>
 
-                <div className="bg-white/5 border border-white/10 p-5 rounded-2xl max-w-sm mx-auto space-y-2">
-                  <span className="text-[10px] text-gray-500 uppercase font-mono font-bold tracking-widest block">
-                    Your Booking ID
-                  </span>
-                  <span className="font-mono text-2xl font-extrabold text-gold tracking-wide block">
-                    {bookingId}
-                  </span>
-                  <span className="text-[11px] text-gray-400 block pt-1">
-                    Please save this ID. We have also saved a confirmation log to your email: {email || "specified address"}.
+                <div className="bg-white/5 border border-white/10 p-5 rounded-2xl max-w-sm mx-auto space-y-3 text-left">
+                  <div className="text-center pb-2 border-b border-white/5">
+                    <span className="text-[10px] text-gray-500 uppercase font-mono font-bold tracking-widest block">
+                      Your Booking ID
+                    </span>
+                    <span className="font-mono text-2xl font-extrabold text-gold tracking-wide block">
+                      {bookingId}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5 text-xs text-gray-300 pt-1">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500 uppercase text-[9px] tracking-wider font-bold">Meeting Date:</span>
+                      <span className="font-semibold text-white">{successDate}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500 uppercase text-[9px] tracking-wider font-bold">Meeting Time:</span>
+                      <span className="font-semibold text-white">{successTime}</span>
+                    </div>
+                  </div>
+
+                  <span className="text-[10.5px] text-gray-400 block pt-2 text-center leading-relaxed">
+                    Please save this ID. We have also saved a confirmation log to your email: <strong className="text-gold font-mono text-xs">{successEmail || "specified address"}</strong>.
                   </span>
                 </div>
 

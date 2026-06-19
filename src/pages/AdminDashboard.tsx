@@ -518,6 +518,8 @@ Leopard Luxe Team`;
                                 <th className="py-4 font-mono">Booking ID</th>
                                 <th className="py-4">Name & Email</th>
                                 <th className="py-4">Phone Number</th>
+                                <th className="py-4 text-gold font-semibold">Meeting Date</th>
+                                <th className="py-4 text-gold font-semibold">Meeting Time</th>
                                 <th className="py-4">Company Name</th>
                                 <th className="py-4">Service Interested In</th>
                                 <th className="py-4">Monthly Budget</th>
@@ -548,6 +550,16 @@ Leopard Luxe Team`;
                                   {/* Phone */}
                                   <td className="py-4 text-gray-300 font-mono">
                                     {booking.phone || "No Phone"}
+                                  </td>
+
+                                  {/* Meeting Date */}
+                                  <td className="py-4 text-white font-sans font-semibold">
+                                    {booking.selectedDate || "N/A"}
+                                  </td>
+
+                                  {/* Meeting Time */}
+                                  <td className="py-4 text-white font-mono font-semibold">
+                                    {booking.selectedTime || "N/A"}
                                   </td>
 
                                   {/* Company */}

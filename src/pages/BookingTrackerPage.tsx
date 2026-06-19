@@ -339,7 +339,7 @@ export function BookingTrackerPage() {
 
               {/* Info grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-white/5 text-xs text-gray-400">
-                <div className="space-y-4">
+                <div className="space-y-4 font-sans">
                   <div className="space-y-1">
                     <span className="text-[10px] uppercase tracking-widest text-gray-500 font-bold block">Interested Service</span>
                     <span className="text-white font-medium text-sm block">{bookingData.serviceInterested}</span>
@@ -348,6 +348,13 @@ export function BookingTrackerPage() {
                   <div className="space-y-1">
                     <span className="text-[10px] uppercase tracking-widest text-gray-500 font-bold block">Estimated Budget Allocation</span>
                     <span className="text-white font-medium text-sm block">{bookingData.budget}</span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <span className="text-[10px] uppercase tracking-widest text-gray-500 font-bold block flex items-center gap-1">
+                      <Calendar className="w-3 h-3 text-gold" /> Meeting Date
+                    </span>
+                    <span className="text-gold font-bold text-sm block">{bookingData.selectedDate || "N/A"}</span>
                   </div>
                 </div>
 
@@ -360,6 +367,13 @@ export function BookingTrackerPage() {
                   <div className="space-y-1">
                     <span className="text-[10px] uppercase tracking-widest text-gray-500 font-bold block">Assigned Advisor</span>
                     <span className="text-gold font-semibold text-sm block">{bookingData.assignedTo || "Under Review (Leopard Luxe General Desk)"}</span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <span className="text-[10px] uppercase tracking-widest text-gray-500 font-bold block flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-gold" /> Meeting Time
+                    </span>
+                    <span className="text-white font-bold text-sm block">{bookingData.selectedTime || "N/A"}</span>
                   </div>
                 </div>
               </div>
