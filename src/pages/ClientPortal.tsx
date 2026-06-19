@@ -454,7 +454,7 @@ export function ClientPortal() {
 
           try {
             const bookingIdNum = Math.floor(100000 + Math.random() * 900000);
-            const bookingId = bookingIdNum.toString();
+            const bookingId = `LL-${bookingIdNum}`;
             const bDate = formatDateDisplay(selectedDate);
             const bTime = formatTimeTo12Hour(selectedTime);
 
@@ -462,14 +462,18 @@ export function ClientPortal() {
             await setDoc(doc(db, 'bookings', bookingId), {
               bookingId,
               userId: user?.uid || 'Unknown',
-              userName: dbUser?.fullName || user?.displayName || "",
-              userEmail: user?.email || "",
-              serviceType,
-              bookingDate: bDate,
-              bookingTime: bTime,
+              fullName: dbUser?.fullName || user?.displayName || "VIP Partner",
+              email: user?.email || "",
+              phone: dbUser?.phone || "N/A",
+              companyName: dbUser?.companyName || "N/A",
+              serviceInterested: serviceType,
+              budget: "N/A",
               notes: notes || "",
+              selectedDate: bDate,
+              selectedTime: bTime,
               status: 'Pending',
-              createdAt: serverTimestamp()
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp()
             });
 
             // 2. Write to explicit 'meetingRequests' collection as requested
@@ -492,7 +496,7 @@ export function ClientPortal() {
                 userId: user?.uid || 'Unknown',
                 fullName: dbUser?.fullName || user?.displayName || "VIP Partner",
                 email: user?.email || "",
-                phone: dbUser?.phone || "",
+                phone: dbUser?.phone || "N/A",
                 companyName: dbUser?.companyName || "N/A",
                 serviceInterested: serviceType,
                 budget: "N/A",
