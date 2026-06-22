@@ -50,13 +50,13 @@ export function Footer() {
             <h4 className="text-white font-semibold mb-6 uppercase tracking-wider text-sm">Contact Info</h4>
             <ul className="space-y-4 mb-8">
               <li>
-                <a href="mailto:hello@leopardluxe.com" className="text-gray-400 hover:text-gold text-sm transition-colors block">
-                  hello@leopardluxe.com
+                <a href="mailto:business@leopardluxe.in" className="text-gray-400 hover:text-gold text-sm transition-colors block">
+                  business@leopardluxe.in
                 </a>
               </li>
               <li>
-                <a href="tel:+910000000000" className="text-gray-400 hover:text-gold text-sm transition-colors block">
-                  +91 XXXXX XXXXX
+                <a href="tel:+919717550681" className="text-gray-400 hover:text-gold text-sm transition-colors block">
+                  +91 9717550681
                 </a>
               </li>
             </ul>
