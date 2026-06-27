@@ -8,14 +8,13 @@ export function Footer() {
           
           {/* Brand Info */}
           <div className="lg:col-span-1">
-            <h3 className="font-serif text-2xl text-gold tracking-widest uppercase mb-6 flex items-center gap-3">
+            <div className="mb-6">
               <img
-                 src="/assets/images/logo-bg.png"
-                  alt="Leopard Luxe Logo"
-                  className="w-10 h-10 object-contain"
+                src="/assets/images/logo-bg.png"
+                alt="Leopard Luxe Logo"
+                className="w-40 h-auto object-contain"
               />
-              Leopard Luxe
-            </h3>
+            </div>
             <p className="text-sm text-gray-500 leading-relaxed font-sans max-w-xs">
               The premier business growth and digital transformation agency for ambitious brands globally.
             </p>
