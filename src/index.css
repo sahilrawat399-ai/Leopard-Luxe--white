@@ -58,6 +58,14 @@ body {
   background: var(--color-gold); 
 }
 
+.hide-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
 .text-gradient-gold {
   background: linear-gradient(135deg, #FFF 0%, #D4AF37 50%, #B89626 100%);
   -webkit-background-clip: text;
